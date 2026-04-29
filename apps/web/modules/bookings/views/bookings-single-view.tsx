@@ -459,7 +459,7 @@ export default function Success(props: PageProps) {
       return t("event_is_in_the_past");
     }
 
-    return isRecurringBooking ? t("meeting_is_scheduled_recurring") : t("meeting_is_scheduled");
+    return isRecurringBooking ? t("meeting_is_scheduled_recurring") : "Забронировано!";
   })();
 
   return (
@@ -559,9 +559,9 @@ export default function Success(props: PageProps) {
                         {successPageHeadline}
                       </h3>
 
-                      <div className="mt-3">
+                      {/* <div className="mt-3">
                         <p className="text-default">{getTitle()}</p>
-                      </div>
+                      </div> */}
                       {props.paymentStatus &&
                         (bookingInfo.status === BookingStatus.CANCELLED ||
                           bookingInfo.status === BookingStatus.REJECTED) && <h4>{paymentStatusMessage}</h4>}
@@ -598,7 +598,7 @@ export default function Success(props: PageProps) {
                             </div>
                           </>
                         )}
-                        <div className="font-medium">{t("what")}</div>
+                        {/* <div className="font-medium">{t("what")}</div>
                         <div
                           className="wrap-break-word col-span-2 mb-6 last:mb-0"
                           data-testid="booking-title">
@@ -607,7 +607,7 @@ export default function Success(props: PageProps) {
                               ? bookingInfo.title
                               : eventName
                             : eventName}
-                        </div>
+                        </div> */}
                         <div className="font-medium">{t("when")}</div>
                         <div className="col-span-2 mb-6 last:mb-0">
                           {reschedule && !!formerTime && (
@@ -635,7 +635,7 @@ export default function Success(props: PageProps) {
                             tz={tz}
                           />
                         </div>
-                        {(bookingInfo?.user || bookingInfo?.attendees) && (
+                        {/* {(bookingInfo?.user || bookingInfo?.attendees) && (
                           <>
                             <div className="font-medium">{t("who")}</div>
                             <div className="col-span-2 last:mb-0">
@@ -680,8 +680,8 @@ export default function Success(props: PageProps) {
                               })}
                             </div>
                           </>
-                        )}
-                        {locationToDisplay && !isCancelled && (
+                        )} */}
+                        {/* {locationToDisplay && !isCancelled && (
                           <>
                             <div className="mt-3 font-medium">{t("where")}</div>
                             <div className="col-span-2 mt-3" data-testid="where">
@@ -708,7 +708,7 @@ export default function Success(props: PageProps) {
                               )}
                             </div>
                           </>
-                        )}
+                        )} */}
                         {props.paymentStatus && (
                           <>
                             <div className="mt-3 font-medium">
@@ -967,7 +967,7 @@ export default function Success(props: PageProps) {
                         </Button>
                       </div>
                     )}
-                    {!needsConfirmation && !isCancellationMode && isReschedulable && !!calculatedDuration && (
+                    {/* {!needsConfirmation && !isCancellationMode && isReschedulable && !!calculatedDuration && (
                       <>
                         <hr className="border-subtle mt-8" />
                         <div className="text-default align-center flex flex-row justify-center pt-8">
@@ -1039,9 +1039,9 @@ export default function Success(props: PageProps) {
                           </div>
                         </div>
                       </>
-                    )}
+                    )} */}
 
-                    {session === null && !(userIsOwner || props.hideBranding) && (
+                    {/* {session === null && !(userIsOwner || props.hideBranding) && (
                       <>
                         <hr className="border-subtle mt-8" />
                         <div className="text-default pt-8 text-center text-xs">
@@ -1074,7 +1074,7 @@ export default function Success(props: PageProps) {
                           </form>
                         </div>
                       </>
-                    )}
+                    )} */}
                   </>
                 )}
                 {isFeedbackMode &&

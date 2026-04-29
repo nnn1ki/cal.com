@@ -26,6 +26,9 @@ function CalendarInner(props: CalendarComponentProps) {
   const schedulerGrid = useRef<HTMLOListElement | null>(null);
   const initialState = useCalendarStore((state) => state.initState);
 
+  const allEventType = useCalendarStore((state) => state.allEventType); // получаем список eventsType
+  const event = useCalendarStore((state) => state.events); 
+
   const startDate = useCalendarStore((state) => state.startDate);
   const endDate = useCalendarStore((state) => state.endDate);
   const startHour = useCalendarStore((state) => state.startHour || 0);
@@ -42,6 +45,11 @@ function CalendarInner(props: CalendarComponentProps) {
   const renderOutOfOffice = useCalendarStore((state) => state.renderOutOfOffice);
 
   const days = useMemo(() => getDaysBetweenDates(startDate, endDate), [startDate, endDate]);
+
+  
+
+  console.log("allEventType", allEventType);
+  
 
   const hours = useMemo(
     () => getHoursToDisplay(startHour || 0, endHour || 23, timezone),
@@ -78,6 +86,7 @@ function CalendarInner(props: CalendarComponentProps) {
               days={days}
               showBorder={showBorder}
               borderColor={borderColor}
+              events={allEventType}
             />
             <div className="relative flex flex-auto">
               <CurrentTime

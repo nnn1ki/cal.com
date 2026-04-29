@@ -14,12 +14,15 @@ import { localStorage } from "@calcom/lib/webstorage";
 import type { useScheduleForEventReturnType } from "@calcom/web/modules/schedules/hooks/useEvent";
 
 import { OutOfOfficeInSlots } from "./OutOfOfficeInSlots";
+import { EventType } from "@calcom/prisma/client";
 
 export const LargeCalendar = ({
   extraDays,
   schedule,
   isLoading,
   event,
+
+  allEventType
 }: {
   extraDays: number;
   schedule?: useScheduleForEventReturnType["data"];
@@ -27,6 +30,8 @@ export const LargeCalendar = ({
   event: {
     data?: Pick<BookerEvent, "length"> | null;
   };
+  
+  allEventType: EventType[]
 }) => {
   const selectedDate = useBookerStoreContext((state) => state.selectedDate);
   const setSelectedTimeslot = useBookerStoreContext((state) => state.setSelectedTimeslot);
@@ -81,6 +86,8 @@ export const LargeCalendar = ({
         hideHeader
         timezone={timezone}
         renderOutOfOffice={(props) => <OutOfOfficeInSlots {...props} />}
+
+        allEventType={allEventType as any}
       />
     </div>
   );

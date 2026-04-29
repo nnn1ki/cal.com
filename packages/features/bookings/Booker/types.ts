@@ -1,10 +1,14 @@
 import type { IntlSupportedTimeZones } from "@calcom/lib/timeZones";
 import type React from "react";
 import type { GetBookingType } from "../lib/get-booking";
+import { EventType } from "@testing-library/react";
 
 export type Timezone = (typeof IntlSupportedTimeZones)[number];
 
 export interface BookerProps {
+
+  allEventType: EventType[];
+
   eventSlug: string;
   username: string;
   orgBannerUrl?: string | null;

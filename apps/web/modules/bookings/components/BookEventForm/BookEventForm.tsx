@@ -181,7 +181,7 @@ export const BookEventForm = ({
 
         {!isPlatform && (
           <div className="my-3 w-full text-xs text-subtle">
-            <ServerTrans
+            {/* <ServerTrans
               t={t}
               i18nKey="signing_up_terms"
               values={{ appName: APP_NAME }}
@@ -201,7 +201,7 @@ export const BookEventForm = ({
                   Privacy Policy.
                 </Link>,
               ]}
-            />
+            /> */}
           </div>
         )}
 

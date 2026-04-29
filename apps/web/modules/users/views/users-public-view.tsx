@@ -20,6 +20,8 @@ import type { InferGetServerSidePropsType } from "next";
 import Link from "next/link";
 import { Toaster } from "sonner";
 
+
+
 export type PageProps = InferGetServerSidePropsType<typeof getServerSideProps>;
 export function UserPage(props: PageProps) {
   const { users, profile, eventTypes, entity } = props;
@@ -52,6 +54,9 @@ export function UserPage(props: PageProps) {
   const isEventListEmpty = eventTypes.length === 0;
   const isOrg = !!user?.profile?.organization;
 
+
+  console.log('eventTypes', typeof(eventTypes));
+  
   return (
     <>
       <div className={classNames(shouldAlignCentrally ? "mx-auto" : "", isEmbed ? "max-w-3xl" : "")}>
@@ -148,6 +153,7 @@ export function UserPage(props: PageProps) {
           </div>
 
           {isEventListEmpty && <EmptyPage name={profile.name || "User"} />}
+
         </main>
         <Toaster position="bottom-right" />
       </div>

@@ -5,6 +5,7 @@ import type { TimeRange } from "@calcom/types/schedule";
 
 import type { BorderColor } from "./common";
 import type { CalendarEvent } from "./events";
+import { EventType } from "@testing-library/react";
 
 export type OutOfOfficeRenderProps = {
   date: string;
@@ -93,6 +94,9 @@ export type CalendarState = {
    * @Note Ideally you should pass in a sorted array from the DB however, pass the prop `sortEvents` if this is not possible and we will sort this for you..
    */
   events: CalendarEvent[];
+
+  allEventType: EventType[];
+
   /**
    * Instead of letting users choose any option, this will only show these timeslots.
    * Users can not pick any time themselves but are restricted to the available options.

@@ -54,6 +54,7 @@ import { BookerSection } from "@calcom/features/bookings/components/Section";
 import { SlotSelectionModalHeader } from "./SlotSelectionModalHeader";
 import { NotFound } from "./Unavailable";
 import { VerifyCodeDialog } from "./VerifyCodeDialog";
+import { CalendarStoreContext, useCalendarStore } from "@calcom/features/calendars/weeklyview/state/store";
 
 const BookerComponent = ({
   username,
@@ -94,6 +95,8 @@ const BookerComponent = ({
   roundRobinHideOrgAndTeam,
   hideOrgTeamAvatar,
   showNoAvailabilityDialog,
+  allEventType, 
+
 }: BookerProps & WrappedBookerProps): JSX.Element | null => {
   const searchParams = useCompatSearchParams();
   const isPlatformBookerEmbed = useIsPlatformBookerEmbed();
@@ -368,6 +371,9 @@ const BookerComponent = ({
     return null;
   }
 
+
+ 
+
   return (
     <>
       {event.data && !isPlatform ? <BookingPageTagManager eventType={event.data} /> : <></>}
@@ -446,7 +452,7 @@ const BookerComponent = ({
                     src={orgBannerUrl}
                   />
                 )}
-                {!hideEventTypeDetails && (
+                {/* {!hideEventTypeDetails && (
                   <EventMeta
                     selectedTimeslot={selectedTimeslot}
                     classNames={{
@@ -466,7 +472,7 @@ const BookerComponent = ({
                     hideEventTypeDetails={hideEventTypeDetails}>
                     {eventMetaChildren}
                   </EventMeta>
-                )}
+                )} */}
                 {layout !== BookerLayouts.MONTH_VIEW &&
                   !(layout === "mobile" && bookerState === "booking") && (
                     <div className="mt-auto px-5 py-3">
@@ -528,6 +534,8 @@ const BookerComponent = ({
                 schedule={schedule.data}
                 isLoading={schedule.isPending}
                 event={event}
+
+                allEventType={allEventType as any}
               />
             </BookerSection>
 
@@ -689,7 +697,7 @@ const BookerComponent = ({
 export const Booker = (props: BookerProps & WrappedBookerProps) => {
   return (
     <LazyMotion strict features={framerFeatures}>
-      <BookerComponent {...props} />
+        <BookerComponent {...props} />
     </LazyMotion>
   );
 };

@@ -2,7 +2,10 @@ import dayjs from "@calcom/dayjs";
 import { useCalendarStore } from "@calcom/features/calendars/weeklyview/state/store";
 import type { BorderColor } from "@calcom/features/calendars/weeklyview/types/common";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { Calendar } from "@calcom/platform-types";
+import { CalendarEvent } from "@calcom/types/Calendar";
 import classNames from "@calcom/ui/classNames";
+import { EventType } from "@testing-library/react";
 import type React from "react";
 
 type Props = {
@@ -10,12 +13,28 @@ type Props = {
   borderColor: BorderColor;
   days: dayjs.Dayjs[];
   containerNavRef: React.RefObject<HTMLDivElement>;
+  events: EventType[]; // будем рисовать теперь только названия ресурса бронирования
+
 };
 
-export function DateValues({ showBorder, borderColor, days, containerNavRef }: Props) {
+export function DateValues({ showBorder, borderColor, days, containerNavRef, events }: Props) {
+
+  const hardcodedTitles = [
+    "Парикмахер",
+    "Милирование",
+    "Макияж",
+    "Милирование2",
+    "Ногти1",
+    "Ногти2",
+    "Парикмахер3",
+  ];
+
+
   const { i18n } = useLocale();
   const timezone = useCalendarStore((state) => state.timezone);
   const showTimezone = useCalendarStore((state) => state.showTimezone ?? false);
+
+  console.log("events", events);
 
   const formatDate = (date: dayjs.Dayjs): string => {
     return new Intl.DateTimeFormat(i18n.language, { weekday: "short" }).format(date.toDate());
@@ -24,6 +43,9 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
   const getTimezoneDisplay = () => {
     if (!showTimezone || !timezone) return null;
     try {
+
+      
+
       const timeRaw = dayjs().tz(timezone);
       const utcOffsetInMinutes = timeRaw.utcOffset();
 
@@ -85,29 +107,87 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
             <span className="text-muted text-xs font-medium">{getTimezoneDisplay()}</span>
           )}
         </div>
-        {days.map((day) => {
+
+        {days.map((day, idx) => {
           const isToday = dayjs().isSame(day, "day");
           return (
             <div
               key={day.toString()}
               className={classNames(
-                "flex flex-1 items-center justify-center py-3 text-xs font-medium uppercase",
-                isToday && "text-default"
+                "flex flex-1 items-center justify-center py-3 text-xs font-medium uppercase"
               )}>
               <span>
-                {formatDate(day)}{" "}
                 <span
                   className={classNames(
-                    "items-center justify-center p-1",
-                    isToday && "bg-brand-default text-brand ml-1 rounded-md"
+                    "items-center justify-center p-1"
                   )}>
-                  {day.format("DD")}
+                  {hardcodedTitles[idx] || ""}
                 </span>
               </span>
             </div>
           );
         })}
+
       </div>
     </div>
   );
 }
+
+
+
+// {eventTypes.map((type) => (
+//               <Link
+//                 key={type.id}
+//                 style={{ display: "flex", ...eventTypeListItemEmbedStyles }}
+//                 prefetch={false}
+//                 href={{
+//                   pathname: `/${user.profile.username}/${type.slug}`,
+//                   query,
+//                 }}
+//                 passHref
+//                 onClick={async () => {
+//                   sdkActionManager?.fire("eventTypeSelected", {
+//                     eventType: type,
+//                   });
+//                 }}
+//                 className="bg-default border-subtle dark:bg-cal-muted dark:hover:bg-subtle hover:bg-cal-muted group relative border-b transition first:rounded-t-md last:rounded-b-md last:border-b-0"
+//                 data-testid="event-type-link">
+//                 <Icon
+//                   name="arrow-right"
+//                   className="text-emphasis absolute right-4 top-4 h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100"
+//                 />
+//                 {/* Don't prefetch till the time we drop the amount of javascript in [user][type] page which is impacting score for [user] page */}
+//                 <div className="block w-full p-5">
+//                   <div className="flex flex-wrap items-center">
+//                     <h2 className="text-default pr-2 text-sm font-semibold">{type.title}</h2>
+//                   </div>
+//                   <EventTypeDescription eventType={type} isPublic={true} shortenDescription />
+//                 </div>
+//               </Link>
+//             ))}
+
+
+
+
+// {days.map((day) => {
+//           const isToday = dayjs().isSame(day, "day");
+//           return (
+//             <div
+//               key={day.toString()}
+//               className={classNames(
+//                 "flex flex-1 items-center justify-center py-3 text-xs font-medium uppercase",
+//                 isToday && "text-default"
+//               )}>
+//               <span>
+//                 {formatDate(day)}{" "}
+//                 <span
+//                   className={classNames(
+//                     "items-center justify-center p-1",
+//                     isToday && "bg-brand-default text-brand ml-1 rounded-md"
+//                   )}>
+//                   {day.format("DD")}
+//                 </span>
+//               </span>
+//             </div>
+//           );
+//         })}

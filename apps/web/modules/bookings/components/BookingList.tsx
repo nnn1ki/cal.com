@@ -60,6 +60,7 @@ export function BookingList({
               description: t(descriptionByStatus[status]),
             })}
           />
+          <span> дата тейбл вуе</span>
         </div>
       }
       ErrorView={ErrorView}

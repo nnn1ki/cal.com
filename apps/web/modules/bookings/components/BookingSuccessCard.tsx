@@ -47,12 +47,13 @@ export function BookingSuccessCard({
                 </div>
                 <div className="mb-8 mt-6 text-center last:mb-0">
                   <h3 className="text-emphasis text-2xl font-semibold leading-6" id="modal-headline">
-                    {t("meeting_is_scheduled")}
+                    {/* {t("meeting_is_scheduled")} */}
+                    "Слот успешно забронирован"
                   </h3>
 
-                  <div className="mt-3">
+                  {/* <div className="mt-3">
                     <p className="text-default">{t("emailed_you_and_any_other_attendees")}</p>
-                  </div>
+                  </div> */}
 
                   <div className="border-subtle text-default mt-8 grid grid-cols-3 gap-x-4 border-t pt-8 text-left rtl:text-right sm:gap-x-0">
                     <div className="font-medium">{t("what")}</div>
@@ -78,7 +79,7 @@ export function BookingSuccessCard({
                     )}
 
                     <div className="font-medium">{t("who")}</div>
-                    <div className="col-span-2 last:mb-0">
+                    {/* <div className="col-span-2 last:mb-0">
                       {hostName && (
                         <div className="mb-3">
                           <div>
@@ -94,14 +95,14 @@ export function BookingSuccessCard({
                           {attendeeEmail && <p>{attendeeEmail}</p>}
                         </div>
                       )}
-                    </div>
+                    </div> */}
 
-                    {location && (
+                    {/* {location && (
                       <>
                         <div className="mt-3 font-medium">{t("where")}</div>
                         <div className="col-span-2 mt-3">{t("web_conferencing_details_to_follow")}</div>
                       </>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>

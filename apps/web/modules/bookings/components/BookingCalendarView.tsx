@@ -72,6 +72,17 @@ export function BookingCalendarView({
       });
   }, [bookings, currentWeekStart, resolvedTheme, forcedTheme]);
 
+  const eventTypes = useMemo(() => {
+    const types = bookings
+      .map((booking) => booking.eventType)
+      .filter((et): et is NonNullable<typeof et> => et !== null && et !== undefined);
+    // убираем дубликаты по id
+    return Array.from(new Map(types.map((et) => [et.id, et])).values());
+  }, [bookings]);
+
+
+  console.log("bookings", bookings); 
+
   return (
     <>
       <div
@@ -83,6 +94,7 @@ export function BookingCalendarView({
           startHour={0}
           endHour={23}
           events={events}
+          eventsType={eventTypes} // тут нам разве не надо прокидывать сам массив?
           startDate={startDate}
           endDate={endDate}
           gridCellsPerHour={4}

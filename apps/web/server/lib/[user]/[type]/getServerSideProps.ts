@@ -1,6 +1,6 @@
 import { type GetServerSidePropsContext } from "next";
 import type { Session } from "next-auth";
-import { z } from "zod";
+import { any, z } from "zod";
 
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
 import type { GetBookingType } from "@calcom/features/bookings/lib/get-booking";
@@ -18,6 +18,9 @@ import { BookingStatus, RedirectType } from "@calcom/prisma/enums";
 import { handleOrgRedirect } from "@lib/handleOrgRedirect";
 
 import { getUsersInOrgContext } from "@server/lib/[user]/getServerSideProps";
+import { getEventTypesPublic } from "@calcom/features/eventtypes/lib/getEventTypesPublic";
+
+import type { EventType } from "@calcom/prisma/client";
 
 type Props = {
   eventData: NonNullable<Awaited<ReturnType<typeof getPublicEvent>>>;
@@ -30,6 +33,8 @@ type Props = {
   isSEOIndexable: boolean | null;
   themeBasis: null | string;
   orgBannerUrl: null;
+
+  allEventTypes: EventType[]; // все события аккаунта
 };
 
 async function processReschedule({
@@ -203,6 +208,7 @@ async function getDynamicGroupPageProps(context: GetServerSidePropsContext) {
     bookingUid: bookingUid ? `${bookingUid}` : null,
     rescheduleUid: null,
     orgBannerUrl: null,
+    allEventTypes: []
   };
 
   if (rescheduleUid) {
@@ -234,6 +240,7 @@ async function getDynamicGroupPageProps(context: GetServerSidePropsContext) {
 async function getUserPageProps(context: GetServerSidePropsContext) {
   const session = await getServerSession({ req: context.req });
   const { user: usernames, type: slug } = paramsSchema.parse(context.params);
+
   const username = usernames[0];
   const { rescheduleUid, bookingUid } = context.query;
   const allowRescheduleForCancelledBooking = context.query.allowRescheduleForCancelledBooking === "true";
@@ -258,6 +265,15 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
       notFound: true,
     } as const;
   }
+
+  const allEventTypes = await prisma.eventType.findMany({
+  where: { userId: user.id },
+    // Если типы привязаны через связь users (многие ко многим) наверное надо
+    // where: { users: { some: { id: user.id } } }
+  });
+
+
+
 
   const org = isValidOrgDomain ? currentOrgDomain : null;
 
@@ -317,6 +333,7 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
     bookingUid: bookingUid ? `${bookingUid}` : null,
     rescheduleUid: null,
     orgBannerUrl: eventData?.owner?.profile?.organization?.bannerUrl ?? null,
+    allEventTypes: allEventTypes
   };
   if (rescheduleUid) {
     const processRescheduleResult = await processReschedule({

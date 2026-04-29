@@ -47,7 +47,8 @@ export function DecoyBookingSuccessCard({
                 </div>
                 <div className="mb-8 mt-6 text-center last:mb-0">
                   <h3 className="text-emphasis text-2xl font-semibold leading-6" id="modal-headline">
-                    {t("meeting_is_scheduled")}
+                    {/* {t("meeting_is_scheduled")} */}
+                    Забронированно!
                   </h3>
 
                   <div className="mt-3">
@@ -96,12 +97,12 @@ export function DecoyBookingSuccessCard({
                       )}
                     </div>
 
-                    {location && (
+                    {/* {location && (
                       <>
                         <div className="mt-3 font-medium">{t("where")}</div>
                         <div className="col-span-2 mt-3">{t("web_conferencing_details_to_follow")}</div>
                       </>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>
