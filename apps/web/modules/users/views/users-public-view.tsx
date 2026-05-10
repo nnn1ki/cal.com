@@ -1,30 +1,22 @@
 "use client";
 
-import {
-  sdkActionManager,
-  useEmbedNonStylesConfig,
-  useEmbedStyles,
-  useIsEmbed,
-} from "@calcom/embed-core/embed-iframe";
-import { useRouterQuery } from "@calcom/lib/hooks/useRouterQuery";
+import { useEmbedNonStylesConfig, useIsEmbed } from "@calcom/embed-core/embed-iframe";
 import useTheme from "@calcom/lib/hooks/useTheme";
 import { UserAvatar } from "@calcom/ui/components/avatar";
 import { Icon } from "@calcom/ui/components/icon";
 import { OrgBanner } from "@calcom/ui/components/organization-banner";
 import { UnpublishedEntity } from "@calcom/ui/components/unpublished-entity";
-import { EventTypeDescriptionLazy as EventTypeDescription } from "@calcom/web/modules/event-types/components";
 import EmptyPage from "@calcom/web/modules/event-types/components/EmptyPage";
 import type { getServerSideProps } from "@server/lib/[user]/getServerSideProps";
 import classNames from "classnames";
 import type { InferGetServerSidePropsType } from "next";
-import Link from "next/link";
 import { Toaster } from "sonner";
-
-
+import { BookerWebWrapper as Booker } from "../../bookings/components/BookerWebWrapper";
+import BookingPageErrorBoundary from "../../../components/error/BookingPageErrorBoundary";
 
 export type PageProps = InferGetServerSidePropsType<typeof getServerSideProps>;
 export function UserPage(props: PageProps) {
-  const { users, profile, eventTypes, entity } = props;
+  const { users, profile, eventTypes, entity, eventData, allEventTypes, orgBannerUrl } = props;
 
   const [user] = users; //To be used when we only have a single user, not dynamic group
   useTheme(profile.theme);
@@ -32,16 +24,8 @@ export function UserPage(props: PageProps) {
   const isBioEmpty = !user.bio || !user.bio.replace("<p><br></p>", "").length;
 
   const isEmbed = useIsEmbed(props.isEmbed);
-  const eventTypeListItemEmbedStyles = useEmbedStyles("eventTypeListItem");
   const shouldAlignCentrallyInEmbed = useEmbedNonStylesConfig("align") !== "left";
   const shouldAlignCentrally = !isEmbed || shouldAlignCentrallyInEmbed;
-  const {
-    // So it doesn't display in the Link (and make tests fail)
-    user: _user,
-    orgSlug: _orgSlug,
-    redirect: _redirect,
-    ...query
-  } = useRouterQuery();
 
   if (entity.considerUnpublished) {
     return (
@@ -51,20 +35,18 @@ export function UserPage(props: PageProps) {
     );
   }
 
-  const isEventListEmpty = eventTypes.length === 0;
+  const isEventListEmpty = eventTypes.length === 0 || !eventData;
   const isOrg = !!user?.profile?.organization;
+  const pageWidthClass = isEventListEmpty ? "max-w-3xl" : "max-w-[96rem]";
 
-
-  console.log('eventTypes', typeof(eventTypes));
-  
   return (
     <>
-      <div className={classNames(shouldAlignCentrally ? "mx-auto" : "", isEmbed ? "max-w-3xl" : "")}>
+      <div className={classNames("w-full", shouldAlignCentrally ? "mx-auto" : "", pageWidthClass)}>
         <main
           className={classNames(
             shouldAlignCentrally ? "mx-auto" : "",
             isEmbed ? "border-booker border-booker-width  bg-default rounded-md" : "",
-            "max-w-3xl px-4 py-12"
+            "w-full px-4 py-12"
           )}>
           <div className="border-subtle bg-default text-default mb-8 overflow-hidden rounded-xl border">
             {isOrg && user.profile.organization?.bannerUrl && (
@@ -117,43 +99,25 @@ export function UserPage(props: PageProps) {
             </div>
           </div>
 
-          <div
-            className={classNames("rounded-md ", !isEventListEmpty && "border-subtle border")}
-            data-testid="event-types">
-            {eventTypes.map((type) => (
-              <Link
-                key={type.id}
-                style={{ display: "flex", ...eventTypeListItemEmbedStyles }}
-                prefetch={false}
-                href={{
-                  pathname: `/${user.profile.username}/${type.slug}`,
-                  query,
-                }}
-                passHref
-                onClick={async () => {
-                  sdkActionManager?.fire("eventTypeSelected", {
-                    eventType: type,
-                  });
-                }}
-                className="bg-default border-subtle dark:bg-cal-muted dark:hover:bg-subtle hover:bg-cal-muted group relative border-b transition first:rounded-t-md last:rounded-b-md last:border-b-0"
-                data-testid="event-type-link">
-                <Icon
-                  name="arrow-right"
-                  className="text-emphasis absolute right-4 top-4 h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100"
+          {isEventListEmpty ? (
+            <EmptyPage name={profile.name || "User"} />
+          ) : (
+            <BookingPageErrorBoundary>
+              <div className="w-full">
+                <Booker
+                  username={user.profile.username ?? profile.username ?? ""}
+                  eventSlug={eventData.slug}
+                  initialLayout="week_view"
+                  allEventType={allEventTypes}
+                  hideBranding={false}
+                  eventData={eventData}
+                  entity={{ ...eventData.entity, eventTypeId: eventData.id }}
+                  durationConfig={eventData.metadata?.multipleDuration}
+                  orgBannerUrl={orgBannerUrl}
                 />
-                {/* Don't prefetch till the time we drop the amount of javascript in [user][type] page which is impacting score for [user] page */}
-                <div className="block w-full p-5">
-                  <div className="flex flex-wrap items-center">
-                    <h2 className="text-default pr-2 text-sm font-semibold">{type.title}</h2>
-                  </div>
-                  <EventTypeDescription eventType={type} isPublic={true} shortenDescription />
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {isEventListEmpty && <EmptyPage name={profile.name || "User"} />}
-
+              </div>
+            </BookingPageErrorBoundary>
+          )}
         </main>
         <Toaster position="bottom-right" />
       </div>

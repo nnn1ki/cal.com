@@ -1,12 +1,10 @@
-import { type GetServerSidePropsContext } from "next";
-import type { Session } from "next-auth";
-import { any, z } from "zod";
-
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
+import type { BookableEventType } from "@calcom/features/bookings/Booker/types";
 import type { GetBookingType } from "@calcom/features/bookings/lib/get-booking";
 import { getBookingForReschedule, getBookingForSeatedEvent } from "@calcom/features/bookings/lib/get-booking";
 import { orgDomainConfig } from "@calcom/features/ee/organizations/lib/orgDomains";
 import { getUsernameList } from "@calcom/features/eventtypes/lib/defaultEvents";
+import { getEventTypesPublic } from "@calcom/features/eventtypes/lib/getEventTypesPublic";
 import type { getPublicEvent } from "@calcom/features/eventtypes/lib/getPublicEvent";
 import { EventRepository } from "@calcom/features/eventtypes/repositories/EventRepository";
 import { shouldHideBrandingForUserEvent } from "@calcom/features/profile/lib/hideBranding";
@@ -14,13 +12,11 @@ import { UserRepository } from "@calcom/features/users/repositories/UserReposito
 import slugify from "@calcom/lib/slugify";
 import { prisma } from "@calcom/prisma";
 import { BookingStatus, RedirectType } from "@calcom/prisma/enums";
-
 import { handleOrgRedirect } from "@lib/handleOrgRedirect";
-
 import { getUsersInOrgContext } from "@server/lib/[user]/getServerSideProps";
-import { getEventTypesPublic } from "@calcom/features/eventtypes/lib/getEventTypesPublic";
-
-import type { EventType } from "@calcom/prisma/client";
+import type { GetServerSidePropsContext } from "next";
+import type { Session } from "next-auth";
+import { any, z } from "zod";
 
 type Props = {
   eventData: NonNullable<Awaited<ReturnType<typeof getPublicEvent>>>;
@@ -34,7 +30,7 @@ type Props = {
   themeBasis: null | string;
   orgBannerUrl: null;
 
-  allEventTypes: EventType[]; // все события аккаунта
+  allEventTypes: BookableEventType[];
 };
 
 async function processReschedule({
@@ -208,7 +204,7 @@ async function getDynamicGroupPageProps(context: GetServerSidePropsContext) {
     bookingUid: bookingUid ? `${bookingUid}` : null,
     rescheduleUid: null,
     orgBannerUrl: null,
-    allEventTypes: []
+    allEventTypes: [],
   };
 
   if (rescheduleUid) {
@@ -267,13 +263,15 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
   }
 
   const allEventTypes = await prisma.eventType.findMany({
-  where: { userId: user.id },
-    // Если типы привязаны через связь users (многие ко многим) наверное надо
-    // where: { users: { some: { id: user.id } } }
+    where: { userId: user.id },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      length: true,
+      schedulingType: true,
+    },
   });
-
-
-
 
   const org = isValidOrgDomain ? currentOrgDomain : null;
 
@@ -333,7 +331,7 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
     bookingUid: bookingUid ? `${bookingUid}` : null,
     rescheduleUid: null,
     orgBannerUrl: eventData?.owner?.profile?.organization?.bannerUrl ?? null,
-    allEventTypes: allEventTypes
+    allEventTypes,
   };
   if (rescheduleUid) {
     const processRescheduleResult = await processReschedule({

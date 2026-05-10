@@ -1,10 +1,6 @@
+import { getOrgFullOrigin } from "@calcom/ee/organizations/lib/orgDomains";
 import { render } from "@testing-library/react";
 import { describe, it, vi } from "vitest";
-
-import { getOrgFullOrigin } from "@calcom/ee/organizations/lib/orgDomains";
-import { useRouterQuery } from "@calcom/lib/hooks/useRouterQuery";
-
-import UserPage from "./users-public-view";
 
 vi.mock("@calcom/lib/constants", async () => {
   return await vi.importActual("@calcom/lib/constants");
@@ -14,9 +10,11 @@ vi.mock("@calcom/ee/organizations/lib/orgDomains", () => ({
   getOrgFullOrigin: vi.fn(),
 }));
 
-vi.mock("@calcom/lib/hooks/useRouterQuery", () => ({
-  useRouterQuery: vi.fn(),
+vi.mock("@components/error/BookingPageErrorBoundary", () => ({
+  default: ({ children }: { children: React.ReactNode }) => children,
 }));
+
+import UserPage from "./users-public-view";
 
 function mockedUserPageComponentProps(props: Partial<React.ComponentProps<typeof UserPage>>) {
   return {
@@ -61,6 +59,9 @@ function mockedUserPageComponentProps(props: Partial<React.ComponentProps<typeof
       ...(props.entity ?? null),
     },
     eventTypes: [],
+    eventData: null,
+    allEventTypes: [],
+    orgBannerUrl: null,
     isOrgSEOIndexable: false,
   } satisfies React.ComponentProps<typeof UserPage>;
 }
@@ -78,10 +79,6 @@ describe("UserPage Component", () => {
 
     vi.mocked(getOrgFullOrigin).mockImplementation((orgSlug: string | null) => {
       return `${orgSlug}.cal.local`;
-    });
-
-    vi.mocked(useRouterQuery).mockReturnValue({
-      uid: "uid",
     });
 
     expect(() => render(<UserPage {...mockData.props} />)).not.toThrow();

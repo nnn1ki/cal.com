@@ -8,9 +8,11 @@ import { Event } from "./Event";
 
 type Props = {
   day: dayjs.Dayjs;
+  resourceId?: string | number;
+  calendarMode?: "date" | "resource";
 };
 
-export function EventList({ day }: Props) {
+export function EventList({ day, resourceId, calendarMode = "date" }: Props) {
   const { startHour, events, eventOnClick, selectedBookingUid } = useCalendarStore(
     (state) => ({
       startHour: state.startHour,
@@ -25,9 +27,13 @@ export function EventList({ day }: Props) {
 
   const dayEvents = useMemo(() => {
     return events.filter((event) => {
+      if (calendarMode === "resource") {
+        return String(event.resourceId) === String(resourceId) && !event.options?.allDay;
+      }
+
       return dayjs(event.start).isSame(day, "day") && !event.options?.allDay;
     });
-  }, [events, day]);
+  }, [calendarMode, day, events, resourceId]);
 
   const layoutMap = useMemo(() => {
     const layouts = calculateEventLayouts(dayEvents);

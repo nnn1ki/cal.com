@@ -5,6 +5,8 @@ import { DefaultOutOfOfficeSlot } from "@calcom/features/calendars/weeklyview/co
 import { useCalendarStore } from "@calcom/features/calendars/weeklyview/state/store";
 import type {
   CalendarAvailableTimeslots,
+  CalendarAvailableTimeslotsByResource,
+  CalendarResource,
   OutOfOfficeRenderProps,
 } from "@calcom/features/calendars/weeklyview/types/state";
 import type { GridCellToDateProps } from "@calcom/features/calendars/weeklyview/utils";
@@ -37,21 +39,28 @@ export function EmptyCell(props: EmptyCellProps) {
 type AvailableCellProps = {
   timezone: string;
   availableSlots: CalendarAvailableTimeslots;
+  resourceSlots?: CalendarAvailableTimeslotsByResource;
   day: GridCellToDateProps["day"];
   startHour: GridCellToDateProps["startHour"];
   renderOutOfOffice?: (props: OutOfOfficeRenderProps) => ReactNode;
+  resource?: CalendarResource;
 };
 
 export function AvailableCellsForDay({
   timezone,
   availableSlots,
+  resourceSlots,
   day,
   startHour,
   renderOutOfOffice,
+  resource,
 }: AvailableCellProps) {
   const date = dayjs(day);
   const dateFormatted = date.format("YYYY-MM-DD");
-  const slotsForToday = availableSlots && availableSlots[dateFormatted];
+  const slotsForToday =
+    resource && resourceSlots?.[String(resource.id)]
+      ? resourceSlots[String(resource.id)]?.[dateFormatted]
+      : availableSlots?.[dateFormatted];
 
   const slots = useMemo(() => {
     const calculatedSlots: {
@@ -135,6 +144,8 @@ export function AvailableCellsForDay({
           key={index}
           timeSlot={dayjs(slot.slot.start).tz(timezone)}
           topOffsetMinutes={slot.topOffsetMinutes}
+          durationMinutes={dayjs(slot.slot.end).diff(dayjs(slot.slot.start), "minutes")}
+          resource={resource}
         />
       ))}
     </>
@@ -145,18 +156,24 @@ type CellProps = {
   isDisabled?: boolean;
   topOffsetMinutes?: number;
   timeSlot: Dayjs;
+  durationMinutes?: number;
+  resource?: CalendarResource;
 };
 
-function Cell({ isDisabled, topOffsetMinutes, timeSlot }: CellProps) {
+function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resource }: CellProps) {
   const { timeFormat } = useTimePreferences();
 
-  const { onEmptyCellClick, hoverEventDuration } = useCalendarStore(
+  const { onEmptyCellClick, hoverEventDuration, selectedCellKeys } = useCalendarStore(
     (state) => ({
       onEmptyCellClick: state.onEmptyCellClick,
       hoverEventDuration: state.hoverEventDuration,
+      selectedCellKeys: state.selectedCellKeys ?? [],
     }),
     shallow
   );
+  const selectionKey = `${resource?.id ?? ""}|${timeSlot.toISOString()}`;
+  const isSelected = selectedCellKeys.includes(selectionKey);
+  const cellDuration = durationMinutes ?? hoverEventDuration ?? 0;
 
   return (
     <div
@@ -170,22 +187,25 @@ function Cell({ isDisabled, topOffsetMinutes, timeSlot }: CellProps) {
       data-slot={timeSlot.toISOString()}
       data-testid="calendar-empty-cell"
       style={{
-        height: `calc(${hoverEventDuration}*var(--one-minute-height))`,
+        height: `calc(${cellDuration}*var(--one-minute-height))`,
         overflow: "visible",
         top: topOffsetMinutes ? `calc(${topOffsetMinutes}*var(--one-minute-height))` : undefined,
       }}
       onClick={() => {
-        onEmptyCellClick?.(timeSlot.toDate());
+        onEmptyCellClick?.(timeSlot.toDate(), resource);
       }}>
-      {!isDisabled && hoverEventDuration !== 0 && (
+      {!isDisabled && cellDuration !== 0 && (
         <div
           className={classNames(
-            "bg-brand-default hover:bg-brand-default text-brand dark:border-emphasis absolute hidden rounded-[4px] p-[6px] text-xs font-semibold leading-5 group-hover:flex group-hover:cursor-pointer",
-            hoverEventDuration && hoverEventDuration > 15 && "items-start pt-3",
-            hoverEventDuration && hoverEventDuration < 15 && "items-center"
+            "absolute rounded-[4px] p-[6px] text-xs font-semibold leading-5 group-hover:flex group-hover:cursor-pointer",
+            isSelected
+              ? "bg-brand-default text-brand border-brand-default flex"
+              : "bg-brand-default hover:bg-brand-default text-brand dark:border-emphasis hidden",
+            cellDuration > 15 && "items-start pt-3",
+            cellDuration < 15 && "items-center"
           )}
           style={{
-            height: `calc(${hoverEventDuration}*var(--one-minute-height) - 2px)`,
+            height: `calc(${cellDuration}*var(--one-minute-height) - 2px)`,
             zIndex: 80,
             // @TODO: This used to be 90% as per Sean's work. I think this was needed when
             // multiple events are stacked next to each other. We might need to add this back later.

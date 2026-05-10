@@ -1,16 +1,12 @@
 "use client";
 
+import { getBookerWrapperClasses } from "@calcom/features/bookings/Booker/utils/getBookerWrapperClasses";
+import { BookerWebWrapper as Booker } from "@calcom/web/modules/bookings/components/BookerWebWrapper";
+import BookingPageErrorBoundary from "@components/error/BookingPageErrorBoundary";
+import type { inferSSRProps } from "@lib/types/inferSSRProps";
+import type { getServerSideProps } from "@server/lib/[user]/[type]/getServerSideProps";
 import type { EmbedProps } from "app/WithEmbedSSR";
 import { useSearchParams } from "next/navigation";
-
-import { BookerWebWrapper as Booker } from "@calcom/web/modules/bookings/components/BookerWebWrapper";
-import { getBookerWrapperClasses } from "@calcom/features/bookings/Booker/utils/getBookerWrapperClasses";
-
-import type { inferSSRProps } from "@lib/types/inferSSRProps";
-
-import BookingPageErrorBoundary from "@components/error/BookingPageErrorBoundary";
-
-import type { getServerSideProps } from "@server/lib/[user]/[type]/getServerSideProps";
 
 export type PageProps = inferSSRProps<typeof getServerSideProps> & EmbedProps;
 
@@ -24,7 +20,16 @@ export const getMultipleDurationValue = (
   return defaultValue;
 };
 
-function Type({ slug, user, isEmbed, booking, isBrandingHidden, eventData, orgBannerUrl }: PageProps) {
+function Type({
+  slug,
+  user,
+  isEmbed,
+  booking,
+  isBrandingHidden,
+  eventData,
+  orgBannerUrl,
+  allEventTypes,
+}: PageProps) {
   const searchParams = useSearchParams();
 
   return (
@@ -33,6 +38,7 @@ function Type({ slug, user, isEmbed, booking, isBrandingHidden, eventData, orgBa
         <Booker
           username={user}
           eventSlug={slug}
+          allEventType={allEventTypes}
           bookingData={booking}
           hideBranding={isBrandingHidden}
           eventData={eventData}

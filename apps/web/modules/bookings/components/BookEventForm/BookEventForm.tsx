@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { FieldError } from "react-hook-form";
+import type { FieldError, FieldErrors } from "react-hook-form";
 
 import { getPaymentAppData } from "@calcom/app-store/_utils/payments/getPaymentAppData";
 import { useIsPlatformBookerEmbed } from "@calcom/atoms/hooks/useIsPlatformBookerEmbed";
@@ -114,11 +114,33 @@ export const BookEventForm = ({
 
   const watchedCfToken = bookingForm.watch("cfToken");
 
+  const getFirstFormErrorMessage = (fieldErrors: FieldErrors<Record<string, unknown>>): string | null => {
+    for (const value of Object.values(fieldErrors)) {
+      if (!value) {
+        continue;
+      }
+
+      if (typeof value === "object" && "message" in value && typeof value.message === "string") {
+        return value.message;
+      }
+
+      if (typeof value === "object") {
+        const nestedError = getFirstFormErrorMessage(value as FieldErrors<Record<string, unknown>>);
+        if (nestedError) {
+          return nestedError;
+        }
+      }
+    }
+
+    return null;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <Form
         className="flex flex-col h-full"
         onChange={() => {
+          bookingForm.clearErrors("globalError");
           // Form data is saved in store. This way when user navigates back to
           // still change the timeslot, and comes back to the form, all their values
           // still exist. This gets cleared when the form is submitted.
@@ -127,6 +149,17 @@ export const BookEventForm = ({
         }}
         form={bookingForm}
         handleSubmit={onSubmit}
+        handleInvalidSubmit={(fieldErrors) => {
+          const firstErrorMessage = getFirstFormErrorMessage(
+            fieldErrors as FieldErrors<Record<string, unknown>>
+          );
+
+          console.error("Booking form validation blocked submit", fieldErrors);
+          bookingForm.setError("globalError", {
+            message: firstErrorMessage || t("error_booking_event"),
+          });
+          errorRef.current?.scrollIntoView({ behavior: "smooth" });
+        }}
         noValidate>
         <BookingFields
           isDynamicGroupBooking={!!(username && username.indexOf("+") > -1)}
@@ -247,6 +280,11 @@ export const BookEventForm = ({
               <Button
                 type="submit"
                 color="primary"
+                onClick={() => {
+                  if (process.env.NODE_ENV !== "production") {
+                    console.debug("Booking confirm button clicked");
+                  }
+                }}
                 disabled={
                   (!!shouldRenderCaptcha && !watchedCfToken) || isTimeslotUnavailable || confirmButtonDisabled
                 }

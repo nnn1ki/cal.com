@@ -1,16 +1,16 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useEffect } from "react";
-import { shallow } from "zustand/shallow";
-
 import { createPaymentLink } from "@calcom/app-store/stripepayment/lib/client";
 import { useHandleBookEvent } from "@calcom/atoms/hooks/bookings/useHandleBookEvent";
 import dayjs from "@calcom/dayjs";
 import { sdkActionManager } from "@calcom/embed-core/embed-iframe";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
-import { updateQueryParam, getQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
+import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
+import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
+import type { BookableEventType } from "@calcom/features/bookings/Booker/types";
+import { getQueryParam, updateQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
+import { mapBookingToMutationInput } from "@calcom/features/bookings/lib";
+import { useBookingSuccessRedirect } from "@calcom/features/bookings/lib/bookingSuccessRedirect";
 import { storeDecoyBooking } from "@calcom/features/bookings/lib/client/decoyBookingStore";
 import { createBooking } from "@calcom/features/bookings/lib/create-booking";
 import { createInstantBooking } from "@calcom/features/bookings/lib/create-instant-booking";
@@ -25,9 +25,10 @@ import { BookingStatus } from "@calcom/prisma/enums";
 import { bookingMetadataSchema } from "@calcom/prisma/zod-utils";
 import { trpc } from "@calcom/trpc/react";
 import { showToast } from "@calcom/ui/components/toast";
-
-import { useBookingSuccessRedirect } from "@calcom/features/bookings/lib/bookingSuccessRedirect";
-import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { shallow } from "zustand/shallow";
 
 export interface IUseBookings {
   event: {
@@ -58,7 +59,117 @@ export interface IUseBookings {
   metadata: Record<string, string>;
   teamMemberEmail?: string | null;
   isBookingDryRun?: boolean;
+  allEventTypes?: BookableEventType[];
 }
+
+export type SelectedBookingEntry = {
+  eventTypeId: number;
+  eventTypeSlug: string;
+  title: string;
+  length: number;
+  schedulingType: BookableEventType["schedulingType"];
+  start: string;
+  dateKey: string;
+};
+
+const buildSelectedBookingEntries = ({
+  allEventTypes,
+  selectedDatesAndTimes,
+  selectedDuration,
+}: {
+  allEventTypes?: BookableEventType[];
+  selectedDatesAndTimes: { [key: string]: { [key: string]: string[] } } | null;
+  selectedDuration: number | null;
+}): SelectedBookingEntry[] => {
+  if (!selectedDatesAndTimes || !allEventTypes?.length) {
+    return [];
+  }
+
+  return allEventTypes
+    .flatMap((eventType) => {
+      const selectionsByDate = selectedDatesAndTimes[eventType.slug] ?? {};
+
+      return Object.entries(selectionsByDate).flatMap(([dateKey, slots]) =>
+        slots.map((slot) => ({
+          eventTypeId: eventType.id,
+          eventTypeSlug: eventType.slug,
+          title: eventType.title,
+          length: selectedDuration ?? eventType.length,
+          schedulingType: eventType.schedulingType,
+          start: slot,
+          dateKey,
+        }))
+      );
+    })
+    .sort((entryA, entryB) => {
+      const startDiff = dayjs(entryA.start).valueOf() - dayjs(entryB.start).valueOf();
+
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+
+      return entryA.title.localeCompare(entryB.title);
+    });
+};
+
+const buildBookingInputForEntry = ({
+  entry,
+  values,
+  timezone,
+  language,
+  username,
+  metadata,
+  hashedLink,
+  teamMemberEmail,
+  crmOwnerRecordType,
+  crmAppSlug,
+  crmRecordId,
+  orgSlug,
+  verificationCode,
+  isBookingDryRun,
+}: {
+  entry: SelectedBookingEntry;
+  values: ReturnType<UseBookingFormReturnType["bookingForm"]["getValues"]>;
+  timezone: string;
+  language: string;
+  username: string | null;
+  metadata: Record<string, string>;
+  hashedLink?: string | null;
+  teamMemberEmail?: string | null;
+  crmOwnerRecordType?: string | null;
+  crmAppSlug?: string | null;
+  crmRecordId?: string | null;
+  orgSlug?: string | null;
+  verificationCode?: string | null;
+  isBookingDryRun?: boolean;
+}) => {
+  return {
+    values,
+    event: {
+      id: entry.eventTypeId,
+      length: entry.length,
+      slug: entry.eventTypeSlug,
+      schedulingType: entry.schedulingType,
+      recurringEvent: null,
+    },
+    date: entry.start,
+    duration: entry.length,
+    timeZone: timezone,
+    language,
+    rescheduleUid: undefined,
+    rescheduledBy: undefined,
+    username: username || "",
+    metadata,
+    hashedLink,
+    teamMemberEmail,
+    crmOwnerRecordType,
+    crmAppSlug,
+    crmRecordId,
+    orgSlug: orgSlug || undefined,
+    verificationCode: verificationCode || undefined,
+    isDryRunProp: isBookingDryRun,
+  };
+};
 
 const getBaseBookingEventPayload = (booking: {
   title?: string;
@@ -168,11 +279,31 @@ const storeInLocalStorage = ({
   localStorage.setItem(STORAGE_KEY, value);
 };
 
-export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookingDryRun }: IUseBookings) => {
+export const useBookings = ({
+  event,
+  hashedLink,
+  bookingForm,
+  metadata,
+  isBookingDryRun,
+  allEventTypes,
+  teamMemberEmail,
+}: IUseBookings) => {
   const router = useRouter();
   const eventSlug = useBookerStoreContext((state) => state.eventSlug);
   const eventTypeId = useBookerStoreContext((state) => state.eventId);
   const isInstantMeeting = useBookerStoreContext((state) => state.isInstantMeeting);
+  const username = useBookerStoreContext((state) => state.username);
+  const selectedDuration = useBookerStoreContext((state) => state.selectedDuration);
+  const setFormValues = useBookerStoreContext((state) => state.setFormValues);
+  const verificationCode = useBookerStoreContext((state) => state.verificationCode);
+  const orgSlug = useBookerStoreContext((state) => state.org);
+  const crmOwnerRecordType = useBookerStoreContext((state) => state.crmOwnerRecordType);
+  const crmAppSlug = useBookerStoreContext((state) => state.crmAppSlug);
+  const crmRecordId = useBookerStoreContext((state) => state.crmRecordId);
+  const [selectedDatesAndTimes, setSelectedDatesAndTimes] = useBookerStoreContext((state) => [
+    state.selectedDatesAndTimes,
+    state.setSelectedDatesAndTimes,
+  ]);
 
   const [rescheduleUid, setRescheduleUid] = useBookerStoreContext(
     (state) => [state.rescheduleUid, state.setRescheduleUid],
@@ -184,13 +315,15 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
     shallow
   );
   const timeslot = useBookerStoreContext((state) => state.selectedTimeslot);
-  const { t } = useLocale();
+  const { i18n, t } = useLocale();
   const bookingSuccessRedirect = useBookingSuccessRedirect();
   const bookerFormErrorRef = useRef<HTMLDivElement>(null);
 
   const [instantMeetingTokenExpiryTime, setExpiryTime] = useState<Date | undefined>();
   const [instantVideoMeetingUrl, setInstantVideoMeetingUrl] = useState<string | undefined>();
+  const [isBatchBookingPending, setIsBatchBookingPending] = useState(false);
   const duration = useBookerStoreContext((state) => state.selectedDuration);
+  const { timezone } = useBookerTime();
 
   const isRescheduling = !!rescheduleUid && !!bookingData;
 
@@ -219,6 +352,14 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
   }, [eventTypeId, isInstantMeeting]);
 
   const instantConnectCooldownMs = getInstantCooldownRemainingMs(eventTypeId);
+
+  const selectedBookingEntries = useMemo<SelectedBookingEntry[]>(() => {
+    return buildSelectedBookingEntries({
+      allEventTypes,
+      selectedDatesAndTimes,
+      selectedDuration,
+    });
+  }, [allEventTypes, selectedDatesAndTimes, selectedDuration]);
 
   const _instantBooking = trpc.viewer.bookings.getInstantBookingLocation.useQuery(
     {
@@ -255,6 +396,10 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
   const createBookingMutation = useMutation({
     mutationFn: createBooking,
     onSuccess: (booking) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("createBookingMutation success", booking);
+      }
+
       if (booking.isDryRun) {
         if (isRescheduling) {
           sdkActionManager?.fire(
@@ -394,6 +539,10 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
       });
     },
     onError: (err) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("createBookingMutation error", err);
+      }
+
       if (bookerFormErrorRef?.current) {
         bookerFormErrorRef.current.scrollIntoView({ behavior: "smooth" });
       }
@@ -529,7 +678,7 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
     },
   });
 
-  const handleBookEvent = useHandleBookEvent({
+  const handleSingleBookEvent = useHandleBookEvent({
     event,
     bookingForm,
     hashedLink,
@@ -550,6 +699,179 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
     isBookingDryRun,
   });
 
+  const handleBatchBookEvent = async (bookingEntries = selectedBookingEntries) => {
+    const values = bookingForm.getValues();
+
+    if (!bookingEntries.length) {
+      showToast(t("error_booking_event"), "error");
+      return;
+    }
+
+    if (!timezone) {
+      showToast(t("error_booking_event"), "error");
+      return;
+    }
+
+    try {
+      setIsBatchBookingPending(true);
+      setFormValues({});
+      bookingForm.clearErrors();
+
+      const createdBookings = [];
+
+      for (const selectedBooking of bookingEntries) {
+        const bookingInput = buildBookingInputForEntry({
+          entry: selectedBooking,
+          values,
+          timezone,
+          language: i18n.language,
+          username,
+          metadata,
+          hashedLink,
+          teamMemberEmail,
+          crmOwnerRecordType,
+          crmAppSlug,
+          crmRecordId,
+          orgSlug,
+          verificationCode,
+          isBookingDryRun,
+        });
+
+        const bookingPayload = {
+          ...mapBookingToMutationInput(bookingInput),
+        };
+        const booking = await createBooking(bookingPayload);
+        createdBookings.push(booking);
+      }
+
+      const firstBooking = createdBookings[0];
+
+      setSelectedDatesAndTimes({});
+      setFormValues({});
+      bookingForm.clearErrors();
+
+      if (firstBooking.isDryRun) {
+        sdkActionManager?.fire("dryRunBookingSuccessfulV2", {
+          ...getDryRunBookingSuccessfulEventPayload({
+            ...firstBooking,
+            isRecurring: false,
+          }),
+          allBookings: createdBookings.map((booking) => ({
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            eventTypeId: booking.eventTypeId,
+          })),
+        });
+        router.push("/booking/dry-run-successful");
+        return;
+      }
+
+      if (!firstBooking?.uid) {
+        console.error("No uid returned from batch createBooking");
+        return;
+      }
+
+      bookingSuccessRedirect({
+        successRedirectUrl: event?.data?.successRedirectUrl || "",
+        query: {
+          isSuccessBookingPage: true,
+          email: bookingForm.getValues("responses.email"),
+          eventTypeSlug: selectedBookingEntries[0]?.eventTypeSlug ?? eventSlug,
+        },
+        booking: firstBooking,
+        forwardParamsSuccessRedirect:
+          event?.data?.forwardParamsSuccessRedirect === undefined
+            ? true
+            : event?.data?.forwardParamsSuccessRedirect,
+      });
+    } catch (error) {
+      console.error("Batch booking failed", {
+        error,
+        selectedBookingEntries: bookingEntries,
+        selectedTimeslot: timeslot,
+        eventSlug,
+      });
+
+      if (bookerFormErrorRef?.current) {
+        bookerFormErrorRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+
+      const errorMessage = error instanceof Error ? t(error.message) : t("can_you_try_again");
+      showToast(errorMessage, "error");
+    } finally {
+      setIsBatchBookingPending(false);
+    }
+  };
+
+  const handleBookEvent = (inputTimeSlot?: string) => {
+    const effectiveSelectedBookingEntries =
+      selectedBookingEntries.length > 0
+        ? selectedBookingEntries
+        : buildSelectedBookingEntries({
+            allEventTypes,
+            selectedDatesAndTimes,
+            selectedDuration,
+          });
+
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("handleBookEvent called", {
+        inputTimeSlot,
+        selectedTimeslot: timeslot,
+        effectiveSelectedBookingEntries,
+      });
+    }
+
+    if (effectiveSelectedBookingEntries.length === 1) {
+      if (!timezone) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Booking aborted: missing timezone", {
+            selectedTimeslot: timeslot,
+            effectiveSelectedBookingEntries,
+          });
+        }
+
+        showToast(t("error_booking_event"), "error");
+        return;
+      }
+
+      setFormValues({});
+      bookingForm.clearErrors();
+
+      const bookingPayload = mapBookingToMutationInput(
+        buildBookingInputForEntry({
+          entry: effectiveSelectedBookingEntries[0],
+          values: bookingForm.getValues(),
+          timezone,
+          language: i18n.language,
+          username,
+          metadata,
+          hashedLink,
+          teamMemberEmail,
+          crmOwnerRecordType,
+          crmAppSlug,
+          crmRecordId,
+          orgSlug,
+          verificationCode,
+          isBookingDryRun,
+        })
+      );
+
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("Submitting single resource booking", bookingPayload);
+      }
+
+      createBookingMutation.mutate(bookingPayload);
+      return;
+    }
+
+    if (effectiveSelectedBookingEntries.length > 0) {
+      void handleBatchBookEvent(effectiveSelectedBookingEntries);
+      return;
+    }
+
+    handleSingleBookEvent(inputTimeSlot);
+  };
+
   const errors = {
     hasDataErrors: Boolean(
       createBookingMutation.isError ||
@@ -564,7 +886,8 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
 
   // A redirect is triggered on mutation success, so keep the loading state while it is happening.
   const loadingStates = {
-    creatingBooking: createBookingMutation.isPending || createBookingMutation.isSuccess,
+    creatingBooking:
+      isBatchBookingPending || createBookingMutation.isPending || createBookingMutation.isSuccess,
     creatingRecurringBooking:
       createRecurringBookingMutation.isPending || createRecurringBookingMutation.isSuccess,
     creatingInstantBooking: createInstantBookingMutation.isPending,
@@ -572,6 +895,8 @@ export const useBookings = ({ event, hashedLink, bookingForm, metadata, isBookin
 
   return {
     handleBookEvent,
+    handleBatchBookEvent,
+    selectedBookingEntries,
     expiryTime: instantMeetingTokenExpiryTime,
     bookingForm,
     bookerFormErrorRef,

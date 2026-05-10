@@ -2,9 +2,9 @@
 
 import dayjs from "@calcom/dayjs";
 import { useTimePreferences } from "@calcom/features/bookings/lib";
+import { Calendar } from "@calcom/features/calendars/weeklyview/components/Calendar";
 import type { CalendarEvent } from "@calcom/features/calendars/weeklyview/types/events";
 import { useGetTheme } from "@calcom/lib/hooks/useTheme";
-import { Calendar } from "@calcom/features/calendars/weeklyview/components/Calendar";
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
 import { useEffect, useMemo } from "react";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
@@ -28,7 +28,7 @@ export function BookingCalendarView({
   const { bannersHeight } = useBanners();
 
   const startDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
-  const endDate = useMemo(() => currentWeekStart.add(6, "day").toDate(), [currentWeekStart]);
+  const endDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
 
   // Intentionally only runs on mount to trigger the initial currentWeekStart
   useEffect(() => {
@@ -63,6 +63,7 @@ export function BookingCalendarView({
           title: booking.title,
           start: new Date(booking.startTime),
           end: new Date(booking.endTime),
+          resourceId: booking.eventType?.id,
           options: {
             status: booking.status,
             ...(eventTypeColor && { color: eventTypeColor }),
@@ -80,21 +81,24 @@ export function BookingCalendarView({
     return Array.from(new Map(types.map((et) => [et.id, et])).values());
   }, [bookings]);
 
-
-  console.log("bookings", bookings); 
-
   return (
     <>
       <div
         className="border-subtle flex flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-2xl border"
         style={{ height: `calc(100vh - 6rem - ${bannersHeight}px)` }}>
         <Calendar
+          calendarMode="resource"
           timezone={timezone}
           sortEvents
           startHour={0}
           endHour={23}
           events={events}
-          eventsType={eventTypes} // тут нам разве не надо прокидывать сам массив?
+          resources={eventTypes.map((eventType) => ({
+            id: eventType.id,
+            slug: eventType.slug,
+            title: eventType.title,
+            length: eventType.length,
+          }))}
           startDate={startDate}
           endDate={endDate}
           gridCellsPerHour={4}

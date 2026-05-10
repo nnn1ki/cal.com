@@ -1,14 +1,14 @@
 import type { IntlSupportedTimeZones } from "@calcom/lib/timeZones";
+import type { EventType } from "@calcom/prisma/client";
 import type React from "react";
 import type { GetBookingType } from "../lib/get-booking";
-import { EventType } from "@testing-library/react";
 
 export type Timezone = (typeof IntlSupportedTimeZones)[number];
+export type BookableEventType = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType">;
 
 export interface BookerProps {
-
-  allEventType: EventType[];
-
+  allEventType?: BookableEventType[];
+  initialLayout?: BookerLayout;
   eventSlug: string;
   username: string;
   orgBannerUrl?: string | null;

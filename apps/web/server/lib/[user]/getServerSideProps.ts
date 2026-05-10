@@ -1,11 +1,10 @@
-import type { EmbedProps } from "app/WithEmbedSSR";
-import type { GetServerSideProps } from "next";
 import { encode } from "node:querystring";
-import type { z } from "zod";
-
+import type { BookableEventType } from "@calcom/features/bookings/Booker/types";
 import { orgDomainConfig } from "@calcom/features/ee/organizations/lib/orgDomains";
 import { getUsernameList } from "@calcom/features/eventtypes/lib/defaultEvents";
 import { getEventTypesPublic } from "@calcom/features/eventtypes/lib/getEventTypesPublic";
+import type { getPublicEvent } from "@calcom/features/eventtypes/lib/getPublicEvent";
+import { EventRepository } from "@calcom/features/eventtypes/repositories/EventRepository";
 import { getBrandingForUser } from "@calcom/features/profile/lib/getBranding";
 import { UserRepository } from "@calcom/features/users/repositories/UserRepository";
 import { DEFAULT_DARK_BRAND_COLOR, DEFAULT_LIGHT_BRAND_COLOR } from "@calcom/lib/constants";
@@ -19,8 +18,10 @@ import type { EventType, User } from "@calcom/prisma/client";
 import { RedirectType } from "@calcom/prisma/enums";
 import type { EventTypeMetaDataSchema } from "@calcom/prisma/zod-utils";
 import type { UserProfile } from "@calcom/types/UserProfile";
-
 import { handleOrgRedirect } from "@lib/handleOrgRedirect";
+import type { EmbedProps } from "app/WithEmbedSSR";
+import type { GetServerSideProps } from "next";
+import type { z } from "zod";
 
 const log = logger.getSubLogger({ prefix: ["[[pages/[user]]]"] });
 type UserPageProps = {
@@ -75,6 +76,9 @@ type UserPageProps = {
     | "seatsPerTimeSlot"
     | "schedulingType"
   >)[];
+  eventData: NonNullable<Awaited<ReturnType<typeof getPublicEvent>>> | null;
+  allEventTypes: BookableEventType[];
+  orgBannerUrl?: string | null;
   isOrgSEOIndexable: boolean | undefined;
 } & EmbedProps;
 
@@ -157,20 +161,15 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
 
   const eventTypes = await getEventTypesPublic(user.id);
 
-  // if profile only has one public event-type, redirect to it
-  if (eventTypes.length === 1 && context.query.redirect !== "false") {
-    // Redirect but don't change the URL
-    const urlDestination = `/${user.profile.username}/${eventTypes[0].slug}`;
-    const { query } = context;
-    const urlQuery = new URLSearchParams(encode(query));
-
-    return {
-      redirect: {
-        permanent: false,
-        destination: `${encodeURI(urlDestination)}?${urlQuery}`,
-      },
-    };
-  }
+  const defaultEventType = eventTypes[0] ?? null;
+  const eventData = defaultEventType
+    ? await EventRepository.getPublicEvent({
+        username: user.username ?? "",
+        eventSlug: defaultEventType.slug,
+        org: isValidOrgDomain ? currentOrgDomain : null,
+        fromRedirectOfNonOrgLink: context.query.orgRedirection === "true",
+      })
+    : null;
 
   const safeBio = markdownToSafeHTML(user.bio) || "";
 
@@ -193,6 +192,15 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
         orgSlug: currentOrgDomain,
         name: org?.name ?? null,
       },
+      eventData,
+      allEventTypes: eventTypes.map((eventType) => ({
+        id: eventType.id,
+        title: eventType.title,
+        slug: eventType.slug,
+        length: eventType.length,
+        schedulingType: eventType.schedulingType,
+      })),
+      orgBannerUrl: user.profile.organization?.bannerUrl ?? null,
       eventTypes,
       safeBio,
       profile,

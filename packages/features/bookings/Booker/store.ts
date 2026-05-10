@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
-import { createWithEqualityFn } from "zustand/traditional";
-
 import dayjs from "@calcom/dayjs";
 import { BOOKER_NUMBER_OF_DAYS_TO_LOAD } from "@calcom/lib/constants";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
-
+import { useEffect } from "react";
+import { createWithEqualityFn } from "zustand/traditional";
 import type { GetBookingType } from "../lib/get-booking";
-import type { BookerState, BookerLayout } from "./types";
-import { updateQueryParam, getQueryParam, removeQueryParam } from "./utils/query-param";
+import type { BookerLayout, BookerState } from "./types";
+import { getQueryParam, removeQueryParam, updateQueryParam } from "./utils/query-param";
 
 const _iso_3166_1_alpha_2_codes = [
   "ad",
@@ -446,7 +444,13 @@ export type BookerStore = {
 export const createBookerStore = () =>
   createWithEqualityFn<BookerStore>((set, get) => ({
     state: "loading",
-    setState: (state: BookerState) => set({ state }),
+    setState: (state: BookerState) => {
+      if (get().state === state) {
+        return;
+      }
+
+      set({ state });
+    },
     layout: BookerLayouts.MONTH_VIEW,
     setLayout: (layout: BookerLayout) => {
       // If we switch to a large layout and don't have a date selected yet,
@@ -469,7 +473,9 @@ export const createBookerStore = () =>
 
       const currentSelection = dayjs(get().selectedDate);
       const newSelection = dayjs(selectedDate);
-      set({ selectedDate });
+      if (get().selectedDate !== selectedDate) {
+        set({ selectedDate });
+      }
       if (!omitUpdatingParams && (!get().isPlatform || get().allowUpdatingUrlParams)) {
         updateQueryParam("date", selectedDate ?? "");
       }
@@ -485,6 +491,10 @@ export const createBookerStore = () =>
     },
     selectedDatesAndTimes: null,
     setSelectedDatesAndTimes: (selectedDatesAndTimes) => {
+      if (get().selectedDatesAndTimes === selectedDatesAndTimes) {
+        return;
+      }
+
       set({ selectedDatesAndTimes });
     },
     addToSelectedDate: (days: number) => {
@@ -703,6 +713,10 @@ export const createBookerStore = () =>
       set({ tentativeSelectedTimeslots });
     },
     setSelectedTimeslot: (selectedTimeslot: string | null) => {
+      if (get().selectedTimeslot === selectedTimeslot) {
+        return;
+      }
+
       set({ selectedTimeslot });
       if (!get().isPlatform || get().allowUpdatingUrlParams) {
         updateQueryParam("slot", selectedTimeslot ?? "", false);

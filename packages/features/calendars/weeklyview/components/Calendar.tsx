@@ -1,3 +1,4 @@
+import dayjs from "@calcom/dayjs";
 import {
   CalendarStoreContext,
   createCalendarStore,
@@ -24,17 +25,16 @@ function CalendarInner(props: CalendarComponentProps) {
   const containerNav = useRef<HTMLDivElement | null>(null);
   const containerOffset = useRef<HTMLDivElement | null>(null);
   const schedulerGrid = useRef<HTMLOListElement | null>(null);
-  const initialState = useCalendarStore((state) => state.initState);
 
-  const allEventType = useCalendarStore((state) => state.allEventType); // получаем список eventsType
-  const event = useCalendarStore((state) => state.events); 
-
+  const calendarMode = useCalendarStore((state) => state.calendarMode ?? "date");
+  const resources = useCalendarStore((state) => state.resources ?? []);
   const startDate = useCalendarStore((state) => state.startDate);
   const endDate = useCalendarStore((state) => state.endDate);
   const startHour = useCalendarStore((state) => state.startHour || 0);
   const endHour = useCalendarStore((state) => state.endHour || 23);
   const usersCellsStopsPerHour = useCalendarStore((state) => state.gridCellsPerHour || 4);
   const availableTimeslots = useCalendarStore((state) => state.availableTimeslots);
+  const resourceTimeSlots = useCalendarStore((state) => state.resourceTimeSlots);
   const hideHeader = useCalendarStore((state) => state.hideHeader);
   const timezone = useCalendarStore((state) => state.timezone);
   const showBackgroundPattern = useCalendarStore((state) => state.showBackgroundPattern);
@@ -45,11 +45,8 @@ function CalendarInner(props: CalendarComponentProps) {
   const renderOutOfOffice = useCalendarStore((state) => state.renderOutOfOffice);
 
   const days = useMemo(() => getDaysBetweenDates(startDate, endDate), [startDate, endDate]);
-
-  
-
-  console.log("allEventType", allEventType);
-  
+  const calendarDay = useMemo(() => dayjs(startDate), [startDate]);
+  const columns = calendarMode === "resource" ? resources : days;
 
   const hours = useMemo(
     () => getHoursToDisplay(startHour || 0, endHour || 23, timezone),
@@ -57,11 +54,6 @@ function CalendarInner(props: CalendarComponentProps) {
   );
   const numberOfGridStopsPerDay = hours.length * usersCellsStopsPerHour;
   const hourSize = 58;
-
-  // Initalise State on initial mount and when props change
-  useEffect(() => {
-    initialState(props);
-  }, [props, initialState]);
 
   return (
     <MobileNotSupported>
@@ -86,7 +78,8 @@ function CalendarInner(props: CalendarComponentProps) {
               days={days}
               showBorder={showBorder}
               borderColor={borderColor}
-              events={allEventType}
+              calendarMode={calendarMode}
+              resources={resources}
             />
             <div className="relative flex flex-auto">
               <CurrentTime
@@ -120,16 +113,23 @@ function CalendarInner(props: CalendarComponentProps) {
                   containerOffsetRef={containerOffset}
                   borderColor={borderColor}
                 />
-                <VerticalLines days={days} borderColor={borderColor} />
+                <VerticalLines columnCount={columns.length} borderColor={borderColor} />
 
                 <SchedulerColumns
                   offsetHeight={containerOffset.current?.offsetHeight}
                   gridStopsPerDay={numberOfGridStopsPerDay}>
                   {/*Loop over events per day  */}
-                  {days.map((day, i) => {
+                  {columns.map((column, i) => {
+                    const resource = calendarMode === "resource" ? resources[i] : undefined;
+                    const columnDay = calendarMode === "resource" ? calendarDay : days[i];
                     return (
-                      <li key={day.toISOString()} className="relative" style={{ gridColumnStart: i + 1 }}>
-                        <EventList day={day} />
+                      <li
+                        key={
+                          calendarMode === "resource" ? `resource-${resource?.id}` : columnDay.toISOString()
+                        }
+                        className="relative"
+                        style={{ gridColumnStart: i + 1 }}>
+                        <EventList day={columnDay} resourceId={resource?.id} calendarMode={calendarMode} />
                         {/* <BlockedList day={day} containerRef={container} /> */}
                       </li>
                     );
@@ -142,44 +142,51 @@ function CalendarInner(props: CalendarComponentProps) {
                   offsetHeight={containerOffset.current?.offsetHeight}
                   gridStopsPerDay={numberOfGridStopsPerDay}>
                   <>
-                    {[...Array(days.length)].map((_, i) => (
-                      <li
-                        className="relative"
-                        key={i}
-                        style={{
-                          gridColumnStart: i + 1,
-                          gridRow: `1 / span ${numberOfGridStopsPerDay}`,
-                        }}>
-                        {/* While startDate < endDate:  */}
-                        {availableTimeslots ? (
-                          <AvailableCellsForDay
-                            key={days[i].toISOString()}
-                            timezone={timezone}
-                            day={days[i]}
-                            startHour={startHour}
-                            availableSlots={availableTimeslots}
-                            renderOutOfOffice={renderOutOfOffice}
-                          />
-                        ) : (
-                          <>
-                            {[...Array(numberOfGridStopsPerDay)].map((_, j) => {
-                              const key = `${i}-${j}`;
-                              return (
-                                <EmptyCell
-                                  key={key}
-                                  day={days[i]}
-                                  gridCellIdx={j}
-                                  totalGridCells={numberOfGridStopsPerDay}
-                                  selectionLength={endHour - startHour}
-                                  startHour={startHour}
-                                  timezone={timezone}
-                                />
-                              );
-                            })}
-                          </>
-                        )}
-                      </li>
-                    ))}
+                    {Array.from({ length: columns.length }).map((_, i) => {
+                      const resource = calendarMode === "resource" ? resources[i] : undefined;
+                      const columnDay = calendarMode === "resource" ? calendarDay : days[i];
+
+                      return (
+                        <li
+                          className="relative"
+                          key={i}
+                          style={{
+                            gridColumnStart: i + 1,
+                            gridRow: `1 / span ${numberOfGridStopsPerDay}`,
+                          }}>
+                          {/* While startDate < endDate:  */}
+                          {availableTimeslots || resourceTimeSlots ? (
+                            <AvailableCellsForDay
+                              key={`${columnDay.toISOString()}-${resource?.id ?? i}`}
+                              timezone={timezone}
+                              day={columnDay}
+                              startHour={startHour}
+                              availableSlots={availableTimeslots ?? {}}
+                              resourceSlots={resourceTimeSlots}
+                              renderOutOfOffice={renderOutOfOffice}
+                              resource={resource}
+                            />
+                          ) : (
+                            <>
+                              {[...Array(numberOfGridStopsPerDay)].map((_, j) => {
+                                const key = `${i}-${j}`;
+                                return (
+                                  <EmptyCell
+                                    key={key}
+                                    day={columnDay}
+                                    gridCellIdx={j}
+                                    totalGridCells={numberOfGridStopsPerDay}
+                                    selectionLength={endHour - startHour}
+                                    startHour={startHour}
+                                    timezone={timezone}
+                                  />
+                                );
+                              })}
+                            </>
+                          )}
+                        </li>
+                      );
+                    })}
                   </>
                 </SchedulerColumns>
               </div>

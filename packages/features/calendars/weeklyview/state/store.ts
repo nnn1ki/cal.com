@@ -1,10 +1,8 @@
-import React from "react";
-import { createStore, useStore } from "zustand";
-import type { StoreApi } from "zustand";
-
 import dayjs from "@calcom/dayjs";
 import { CURRENT_TIMEZONE } from "@calcom/lib/timezoneConstants";
-
+import React from "react";
+import type { StoreApi } from "zustand";
+import { createStore, useStore } from "zustand";
 import type {
   CalendarComponentProps,
   CalendarPublicActions,
@@ -12,14 +10,14 @@ import type {
   CalendarStoreProps,
 } from "../types/state";
 import { mergeOverlappingDateRanges, weekdayDates } from "../utils";
-import { EventType } from "@testing-library/react";
 
 const defaultState: CalendarComponentProps = {
+  calendarMode: "date",
   view: "week",
   startDate: weekdayDates(0, new Date()).startDate,
   endDate: weekdayDates(0, new Date()).endDate,
   events: [],
-  eventsType: [],
+  resources: [],
   startHour: 0,
   endHour: 23,
   gridCellsPerHour: 4,
@@ -39,7 +37,6 @@ export function createCalendarStore(initial?: Partial<CalendarComponentProps>): 
     setEndDate: (endDate: CalendarComponentProps["endDate"]) => set({ endDate }),
     setEvents: (events: CalendarComponentProps["events"]) => set({ events }),
 
-    // setEventType: (eventsType: EventType) => set({ eventsType }),
     // This looks a bit odd but init state only overrides the public props + actions as we don't want to override our internal state
     initState: (state: CalendarState & CalendarPublicActions) => {
       // Handle sorting of events if required
@@ -55,9 +52,8 @@ export function createCalendarStore(initial?: Partial<CalendarComponentProps>): 
         blockingDates,
         events,
         selectedBookingUid: state.selectedBookingUid,
-        eventsType: state.eventsType // добавили и тут наши эвенты
+        resources: state.resources ?? [],
       });
-
     },
     setSelectedEvent: (event) => set({ selectedEvent: event }),
     handleDateChange: (payload) =>

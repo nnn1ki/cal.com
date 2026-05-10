@@ -1,12 +1,11 @@
-import React from "react";
-import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
 import { BookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import { getQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
+import { createBooking } from "@calcom/features/bookings/lib/create-booking";
 import { bookingMetadataSchema } from "@calcom/prisma/zod-utils";
-
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+import type React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useBookings } from "./useBookings";
 
 const mockBookingMetadataSchema = vi.mocked(bookingMetadataSchema);
@@ -35,6 +34,7 @@ vi.mock("@calcom/features/bookings/lib/bookingSuccessRedirect", () => ({
 
 vi.mock("@calcom/lib/hooks/useLocale", () => ({
   useLocale: () => ({
+    i18n: { language: "en" },
     t: (text: string) => text,
   }),
 }));
@@ -136,13 +136,23 @@ const createMockStore = (isInstantMeeting: boolean) => {
     eventSlug: "test-event",
     eventId: 1,
     isInstantMeeting,
+    username: "testuser",
+    timezone: "UTC",
+    org: null,
+    crmOwnerRecordType: null,
+    crmAppSlug: null,
+    crmRecordId: null,
     rescheduleUid: null,
     rescheduledBy: null,
     bookingData: null,
     selectedTimeslot: null,
+    selectedDatesAndTimes: null,
     selectedDuration: null,
+    verificationCode: null,
     setRescheduleUid: vi.fn(),
     setBookingData: vi.fn(),
+    setSelectedDatesAndTimes: vi.fn(),
+    setFormValues: vi.fn(),
   };
 
   return {
@@ -309,6 +319,77 @@ describe("useBookings - Instant Booking Query", () => {
     await waitFor(() => {
       // instantVideoMeetingUrl should be set when isInstantMeeting is true
       expect(result.current.instantVideoMeetingUrl).toBe("http://localhost:3000/video/test-booking-uid");
+    });
+  });
+
+  it("should create a single resource booking with the selected event type instead of falling back to the base event", async () => {
+    vi.mocked(getQueryParam).mockReturnValue(null);
+    vi.mocked(createBooking).mockResolvedValue({
+      uid: "booking-uid",
+      title: "Resource booking",
+      startTime: "2024-01-01T10:00:00.000Z",
+      endTime: "2024-01-01T10:30:00.000Z",
+      eventTypeId: 42,
+      paymentRequired: false,
+      isDryRun: false,
+      user: { email: "host@example.com", timeZone: "UTC" },
+      attendees: [],
+      status: "ACCEPTED",
+    } as never);
+
+    const mockStore = createMockStore(false);
+    mockStore.getState().selectedDatesAndTimes = {
+      "resource-event": {
+        "2024-01-01": ["2024-01-01T10:00:00.000Z"],
+      },
+    };
+
+    const bookingForm = {
+      getValues: vi.fn((path?: string) => {
+        if (path === "responses.name") return "Jane Doe";
+        if (path === "responses.email") return "jane@example.com";
+        return {
+          responses: {
+            name: "Jane Doe",
+            email: "jane@example.com",
+          },
+        };
+      }),
+      clearErrors: vi.fn(),
+    };
+
+    const { result } = renderHook(
+      () =>
+        useBookings({
+          event: mockEvent,
+          bookingForm: bookingForm as never,
+          metadata: {},
+          allEventTypes: [
+            {
+              id: 42,
+              slug: "resource-event",
+              title: "Resource Event",
+              length: 30,
+              schedulingType: null,
+            },
+          ],
+        }),
+      {
+        wrapper: createTestWrapper(mockStore),
+      }
+    );
+
+    result.current.handleBookEvent();
+
+    await waitFor(() => {
+      expect(createBooking).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventTypeId: 42,
+          eventTypeSlug: "resource-event",
+          user: "testuser",
+          start: "2024-01-01T10:00:00+00:00",
+        })
+      );
     });
   });
 });

@@ -1,8 +1,13 @@
-import type dayjs from "@calcom/dayjs";
 import type { BorderColor } from "@calcom/features/calendars/weeklyview/types/common";
 import classNames from "@calcom/ui/classNames";
 
-export const VerticalLines = ({ days, borderColor }: { days: dayjs.Dayjs[]; borderColor: BorderColor }) => {
+export const VerticalLines = ({
+  columnCount,
+  borderColor,
+}: {
+  columnCount: number;
+  borderColor: BorderColor;
+}) => {
   const isRTL = () => {
     let userLanguage = "en"; // Default to 'en' if navigator is not defined
 
@@ -25,12 +30,12 @@ export const VerticalLines = ({ days, borderColor }: { days: dayjs.Dayjs[]; bord
       style={{
         direction: direction,
       }}>
-      {days.map((_, i) => (
+      {Array.from({ length: columnCount }).map((_, i) => (
         <div
           key={`Key_vertical_${i}`}
           className="row-span-full"
           style={{
-            gridColumnStart: isRTL() ? days.length - i : i + 1,
+            gridColumnStart: isRTL() ? columnCount - i : i + 1,
           }}
         />
       ))}

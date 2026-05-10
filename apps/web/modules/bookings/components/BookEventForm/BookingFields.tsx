@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { z } from "zod";
 
@@ -82,6 +82,17 @@ export const BookingFields = ({
     lastSyncedPhoneRef.current = phone;
   };
 
+  useEffect(() => {
+    if (locationResponse?.value !== "phone") {
+      return;
+    }
+
+    setValue(`responses.${SystemField.Enum.smsReminderNumber}`, locationResponse?.optionValue, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [locationResponse?.optionValue, locationResponse?.value, setValue]);
+
   const getPriceFormattedLabel = (label: string, price: number) =>
     `${label} (${Intl.NumberFormat(i18n.language, {
       style: "currency",
@@ -163,7 +174,6 @@ export const BookingFields = ({
           // `smsReminderNumber` and location.optionValue when location.value===phone are the same data point. We should solve it in a better way in the Form Builder itself.
           // I think we should have a way to connect 2 fields together and have them share the same value in Form Builder
           if (locationResponse?.value === "phone") {
-            setValue(`responses.${SystemField.Enum.smsReminderNumber}`, locationResponse?.optionValue);
             // Just don't render the field now, as the value is already connected to attendee phone location
             return null;
           }

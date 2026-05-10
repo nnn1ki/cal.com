@@ -229,6 +229,7 @@ describe("Booker", () => {
 
   it("should invalidate schedule when cancelling booking form", () => {
     const mockInvalidate = vi.fn();
+    const setSelectedDatesAndTimes = vi.fn();
     constantsScenarios.set({
       PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM: "true",
     });
@@ -241,7 +242,7 @@ describe("Booker", () => {
     };
 
     render(<Booker {...(propsWithInvalidate as unknown as BookerProps & WrappedBookerProps)} />, {
-      mockStore: { state: "booking" },
+      mockStore: { state: "booking", setSelectedDatesAndTimes },
     });
     screen.logTestingPlaygroundURL();
     // Trigger form cancel
@@ -249,6 +250,7 @@ describe("Booker", () => {
     cancelButton.click();
 
     expect(mockInvalidate).toHaveBeenCalled();
+    expect(setSelectedDatesAndTimes).toHaveBeenCalledWith({});
     expect(defaultProps.slots.setSelectedTimeslot).toHaveBeenCalledWith(null);
   });
 

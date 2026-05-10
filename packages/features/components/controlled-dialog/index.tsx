@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useIsPlatform } from "@calcom/atoms/hooks/useIsPlatform";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
@@ -54,19 +54,26 @@ function ControlledDialog(props: DialogProps) {
       setDialogState(open ? DIALOG_STATE.OPEN : DIALOG_STATE.CLOSING);
     };
 
-    if (dialogState === DIALOG_STATE.CLOSED && shouldOpenDialog) {
-      setDialogState(DIALOG_STATE.OPEN);
-    }
-
-    if (dialogState === DIALOG_STATE.CLOSING && !shouldOpenDialog) {
-      setDialogState(DIALOG_STATE.CLOSED);
-    }
-
     // allow overriding
     if (!("open" in dialogProps)) {
       dialogProps.open = dialogState === DIALOG_STATE.OPEN ? true : false;
     }
   }
+
+  useEffect(() => {
+    if (!name) {
+      return;
+    }
+
+    if (dialogState === DIALOG_STATE.CLOSED && shouldOpenDialog) {
+      setDialogState(DIALOG_STATE.OPEN);
+      return;
+    }
+
+    if (dialogState === DIALOG_STATE.CLOSING && !shouldOpenDialog) {
+      setDialogState(DIALOG_STATE.CLOSED);
+    }
+  }, [dialogState, name, shouldOpenDialog]);
 
   return <BaseDialog {...dialogProps}>{children}</BaseDialog>;
 }

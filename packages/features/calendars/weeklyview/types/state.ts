@@ -1,11 +1,15 @@
-import type { ReactNode } from "react";
-
 import type { IFromUser, IToUser } from "@calcom/features/availability/lib/getUserAvailability";
 import type { TimeRange } from "@calcom/types/schedule";
-
+import type { ReactNode } from "react";
 import type { BorderColor } from "./common";
 import type { CalendarEvent } from "./events";
-import { EventType } from "@testing-library/react";
+
+export type CalendarResource = {
+  id: number;
+  slug: string;
+  title: string;
+  length?: number | null;
+};
 
 export type OutOfOfficeRenderProps = {
   date: string;
@@ -20,6 +24,7 @@ export type OutOfOfficeRenderProps = {
 };
 
 export type View = "month" | "week" | "day";
+export type CalendarMode = "date" | "resource";
 export type Hours =
   | 0
   | 1
@@ -51,7 +56,7 @@ export type CalendarPublicActions = {
   onViewChange?: (view: View) => void;
   onEventClick?: (event: CalendarEvent) => void;
   onEventContextMenu?: (event: CalendarEvent) => void;
-  onEmptyCellClick?: (date: Date) => void;
+  onEmptyCellClick?: (date: Date, resource?: CalendarResource) => void;
   onDateChange?: (startDate: Date, endDate?: Date) => void;
 };
 
@@ -83,7 +88,12 @@ export type CalendarAvailableTimeslots = {
   [key: string]: TimeRangeExtended[];
 };
 
+export type CalendarAvailableTimeslotsByResource = {
+  [resourceId: string]: CalendarAvailableTimeslots;
+};
+
 export type CalendarState = {
+  calendarMode?: CalendarMode;
   /** @NotImplemented This in future will change the view to be daily/weekly/monthly  DAY/WEEK are supported currently however WEEK is the most adv.*/
   view?: View;
   startDate: Date;
@@ -95,13 +105,14 @@ export type CalendarState = {
    */
   events: CalendarEvent[];
 
-  allEventType: EventType[];
+  resources?: CalendarResource[];
 
   /**
    * Instead of letting users choose any option, this will only show these timeslots.
    * Users can not pick any time themselves but are restricted to the available options.
    */
   availableTimeslots?: CalendarAvailableTimeslots;
+  resourceTimeSlots?: CalendarAvailableTimeslotsByResource;
   /** Any time ranges passed in here will display as blocked on the users calendar. Note: Anything < than the current date automatically gets blocked. */
   blockingDates?: TimeRange[];
   /** Loading will only expect events to be loading. */
@@ -186,6 +197,10 @@ export type CalendarState = {
    * Web consumers pass OutOfOfficeInSlots, atoms/platform can pass their own or null.
    */
   renderOutOfOffice?: (props: OutOfOfficeRenderProps) => ReactNode;
+  /**
+   * Flat list of selected cell keys in `<resourceId>|<isoDate>` or `|<isoDate>` format.
+   */
+  selectedCellKeys?: string[];
 };
 
 export type CalendarComponentProps = CalendarPublicActions & CalendarState & { isPending?: boolean };
