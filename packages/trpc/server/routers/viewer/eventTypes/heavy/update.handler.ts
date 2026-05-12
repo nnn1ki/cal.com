@@ -1,6 +1,7 @@
 import type { appDataSchemas } from "@calcom/app-store/apps.schemas.generated";
 import { DailyLocationType } from "@calcom/app-store/constants";
 import { eventTypeAppMetadataOptionalSchema } from "@calcom/app-store/zod-utils";
+import { syncBookableResourceWithEventType } from "@calcom/features/bookings/lib/bookableResources/syncBookableResourceWithEventType";
 import { CalVideoSettingsRepository } from "@calcom/features/calVideoSettings/repositories/CalVideoSettingsRepository";
 import updateChildrenEventTypes from "@calcom/features/ee/managed-event-types/lib/handleChildrenEventTypes";
 import {
@@ -762,12 +763,18 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
   }
 
   const updatedEventTypeSelect = {
+    id: true,
+    title: true,
+    length: true,
     slug: true,
     schedulingType: true,
   } satisfies Prisma.EventTypeSelect;
 
   // Explicit type to avoid Prisma.EventTypeGetPayload conditional types leaking into .d.ts files
   type UpdatedEventTypeResult = {
+    id: number;
+    title: string;
+    length: number;
     slug: string;
     schedulingType: import("@calcom/prisma/enums").SchedulingType | null;
   };
@@ -788,6 +795,8 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     }
     throw e;
   }
+
+  await syncBookableResourceWithEventType(ctx.prisma, updatedEventType);
 
   if (hostLocationDeletions.length > 0) {
     await ctx.prisma.hostLocation.deleteMany({

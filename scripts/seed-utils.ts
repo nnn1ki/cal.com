@@ -1,8 +1,5 @@
-import { faker } from "@faker-js/faker";
 import { randomUUID } from "node:crypto";
-import { uuid } from "short-uuid";
-import type z from "zod";
-
+import process from "node:process";
 import dayjs from "@calcom/dayjs";
 import { hashPassword } from "@calcom/lib/auth/hashPassword";
 import { DEFAULT_SCHEDULE, getAvailabilityFromSchedule } from "@calcom/lib/availability";
@@ -10,6 +7,9 @@ import prisma from "@calcom/prisma";
 import type { Prisma, UserPermissionRole } from "@calcom/prisma/client";
 import { MembershipRole } from "@calcom/prisma/enums";
 import type { teamMetadataSchema } from "@calcom/prisma/zod-utils";
+import { faker } from "@faker-js/faker";
+import { uuid } from "short-uuid";
+import type z from "zod";
 
 export async function createUserAndEventType({
   user,
@@ -40,13 +40,13 @@ export async function createUserAndEventType({
   } | null)[];
 }) {
   const { password: _password, ...restOfUser } = user;
-  const userData = {
+  const userCreateData = {
     ...restOfUser,
     emailVerified: new Date(),
     completedOnboarding: user.completedOnboarding ?? true,
     locale: "en",
     schedules:
-      user.completedOnboarding ?? true
+      (user.completedOnboarding ?? true)
         ? {
             create: {
               name: "Working Hours",
@@ -59,11 +59,17 @@ export async function createUserAndEventType({
           }
         : undefined,
   };
+  const userUpdateData = {
+    ...restOfUser,
+    emailVerified: new Date(),
+    completedOnboarding: user.completedOnboarding ?? true,
+    locale: "en",
+  };
 
   const theUser = await prisma.user.upsert({
-    where: { email_username: { email: user.email, username: user.username } },
-    update: userData,
-    create: userData,
+    where: { email: user.email },
+    update: userUpdateData,
+    create: userCreateData,
   });
 
   await prisma.userPassword.upsert({
@@ -199,7 +205,7 @@ type OAuthClientInput = {
 };
 
 export async function createOAuthClientForUser(userId: number, oAuthClient: OAuthClientInput) {
-  const {enablePkce, ...restOfOAuthClient} = oAuthClient;
+  const { enablePkce, ...restOfOAuthClient } = oAuthClient;
   await prisma.oAuthClient.create({
     data: {
       userId,

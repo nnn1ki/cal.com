@@ -1,5 +1,5 @@
-import { encode } from "node:querystring";
-import type { BookableEventType } from "@calcom/features/bookings/Booker/types";
+import type { BookableResource } from "@calcom/features/bookings/Booker/types";
+import { syncBookableResourcesWithEventTypes } from "@calcom/features/bookings/lib/bookableResources/syncBookableResourceWithEventType";
 import { orgDomainConfig } from "@calcom/features/ee/organizations/lib/orgDomains";
 import { getUsernameList } from "@calcom/features/eventtypes/lib/defaultEvents";
 import { getEventTypesPublic } from "@calcom/features/eventtypes/lib/getEventTypesPublic";
@@ -77,10 +77,22 @@ type UserPageProps = {
     | "schedulingType"
   >)[];
   eventData: NonNullable<Awaited<ReturnType<typeof getPublicEvent>>> | null;
-  allEventTypes: BookableEventType[];
+  allEventTypes: BookableResource[];
   orgBannerUrl?: string | null;
   isOrgSEOIndexable: boolean | undefined;
 } & EmbedProps;
+
+const mapEventTypeToBookableResource = (
+  eventType: Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType">
+): BookableResource => ({
+  id: eventType.id,
+  title: eventType.title,
+  slug: eventType.slug,
+  length: eventType.length,
+  schedulingType: eventType.schedulingType,
+  eventTypeId: eventType.id,
+  eventTypeSlug: eventType.slug,
+});
 
 export const getServerSideProps: GetServerSideProps<UserPageProps> = async (context) => {
   const { currentOrgDomain, isValidOrgDomain } = orgDomainConfig(context.req, context.params?.orgSlug);
@@ -170,6 +182,7 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
         fromRedirectOfNonOrgLink: context.query.orgRedirection === "true",
       })
     : null;
+  const syncedBookableResources = await syncBookableResourcesWithEventTypes(prisma, eventTypes);
 
   const safeBio = markdownToSafeHTML(user.bio) || "";
 
@@ -193,13 +206,9 @@ export const getServerSideProps: GetServerSideProps<UserPageProps> = async (cont
         name: org?.name ?? null,
       },
       eventData,
-      allEventTypes: eventTypes.map((eventType) => ({
-        id: eventType.id,
-        title: eventType.title,
-        slug: eventType.slug,
-        length: eventType.length,
-        schedulingType: eventType.schedulingType,
-      })),
+      allEventTypes: syncedBookableResources.length
+        ? syncedBookableResources
+        : eventTypes.map(mapEventTypeToBookableResource),
       orgBannerUrl: user.profile.organization?.bannerUrl ?? null,
       eventTypes,
       safeBio,

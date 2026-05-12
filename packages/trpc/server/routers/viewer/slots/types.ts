@@ -14,6 +14,7 @@ export const getScheduleSchemaObject = z.object({
   }),
   // Event type ID
   eventTypeId: z.coerce.number().int().optional(),
+  bookableResourceId: z.coerce.number().int().optional(),
   // Event type slug
   eventTypeSlug: z.string().optional(),
   // invitee timezone

@@ -1,8 +1,6 @@
-import { useEffect, useRef } from "react";
-import { shallow } from "zustand/shallow";
-
 import dayjs from "@calcom/dayjs";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
+import type { QuickAvailabilityCheck } from "@calcom/features/bookings/Booker/types";
 import { useSlotReservationId } from "@calcom/features/bookings/Booker/useSlotReservationId";
 import { isBookingDryRun } from "@calcom/features/bookings/Booker/utils/isBookingDryRun";
 import {
@@ -12,7 +10,8 @@ import {
 } from "@calcom/lib/constants";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { trpc } from "@calcom/trpc/react";
-import type { QuickAvailabilityCheck } from "@calcom/features/bookings/Booker/types";
+import { useEffect, useRef } from "react";
+import { shallow } from "zustand/shallow";
 import { useIsQuickAvailabilityCheckFeatureEnabled } from "./useIsQuickAvailabilityCheckFeatureEnabled";
 
 const useQuickAvailabilityChecks = ({
@@ -77,16 +76,22 @@ export type UseSlotsReturnType = ReturnType<typeof useSlots>;
 export const useSlots = (event: { id: number; length: number } | null) => {
   const selectedDuration = useBookerStoreContext((state) => state.selectedDuration);
   const searchParams = useCompatSearchParams();
-  const [selectedTimeslot, setSelectedTimeslot, tentativeSelectedTimeslots, setTentativeSelectedTimeslots] =
-    useBookerStoreContext(
-      (state) => [
-        state.selectedTimeslot,
-        state.setSelectedTimeslot,
-        state.tentativeSelectedTimeslots,
-        state.setTentativeSelectedTimeslots,
-      ],
-      shallow
-    );
+  const [
+    selectedTimeslot,
+    setSelectedTimeslot,
+    tentativeSelectedTimeslots,
+    setTentativeSelectedTimeslots,
+    selectedDatesAndTimes,
+  ] = useBookerStoreContext(
+    (state) => [
+      state.selectedTimeslot,
+      state.setSelectedTimeslot,
+      state.tentativeSelectedTimeslots,
+      state.setTentativeSelectedTimeslots,
+      state.selectedDatesAndTimes,
+    ],
+    shallow
+  );
   const [slotReservationId, setSlotReservationId] = useSlotReservationId();
   const reserveSlotMutation = trpc.viewer.slots.reserveSlot.useMutation({
     trpc: {
@@ -115,19 +120,23 @@ export const useSlots = (event: { id: number; length: number } | null) => {
   );
 
   const allUniqueSelectedTimeslots = Array.from(new Set(allSelectedTimeslots));
+  const hasMatrixSelection = Object.values(selectedDatesAndTimes ?? {}).some((slotsByDate) =>
+    Object.values(slotsByDate).some((slots) => slots.length > 0)
+  );
+  const shouldUseLegacySlotReservation = !hasMatrixSelection;
 
   const quickAvailabilityChecks = useQuickAvailabilityChecks({
-    eventTypeId,
+    eventTypeId: shouldUseLegacySlotReservation ? eventTypeId : undefined,
     eventDuration,
-    timeslotsAsISOString: allUniqueSelectedTimeslots,
-    slotReservationId,
+    timeslotsAsISOString: shouldUseLegacySlotReservation ? allUniqueSelectedTimeslots : [],
+    slotReservationId: shouldUseLegacySlotReservation ? slotReservationId : undefined,
   });
 
   // In case of skipConfirm flow selectedTimeslot would never be set and instead we could have multiple tentatively selected timeslots, so we pick the latest one from it.
   const timeSlotToBeBooked = selectedTimeslot ?? allSelectedTimeslots.at(-1);
 
   const handleReserveSlot = () => {
-    if (eventTypeId && timeSlotToBeBooked && eventDuration) {
+    if (shouldUseLegacySlotReservation && eventTypeId && timeSlotToBeBooked && eventDuration) {
       reserveSlotMutation.mutate({
         slotUtcStartDate: dayjs(timeSlotToBeBooked).utc().toISOString(),
         eventTypeId,
@@ -138,6 +147,11 @@ export const useSlots = (event: { id: number; length: number } | null) => {
   };
 
   useEffect(() => {
+    if (!shouldUseLegacySlotReservation) {
+      handleRemoveSlot();
+      return;
+    }
+
     handleReserveSlot();
 
     const interval = setInterval(
@@ -152,7 +166,7 @@ export const useSlots = (event: { id: number; length: number } | null) => {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event?.id, timeSlotToBeBooked]);
+  }, [event?.id, timeSlotToBeBooked, shouldUseLegacySlotReservation]);
 
   return {
     setSelectedTimeslot,

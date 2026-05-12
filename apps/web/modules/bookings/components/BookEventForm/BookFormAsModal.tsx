@@ -79,7 +79,7 @@ export const BookEventFormWrapperComponent = ({
         <div className="space-y-2">
           {selectedBookingEntries.map((entry) => (
             <div
-              key={`${entry.eventTypeId}-${entry.start}`}
+              key={`${entry.bookableResourceId ?? entry.eventTypeId}-${entry.start}`}
               className="flex flex-wrap items-center gap-2 rounded-md bg-subtle p-3 leading-none">
               <Badge variant="grayWithoutHover" size="sm">
                 <span>{entry.title}</span>

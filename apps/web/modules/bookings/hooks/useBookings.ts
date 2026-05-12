@@ -1,13 +1,14 @@
 "use client";
 
+import process from "node:process";
 import { createPaymentLink } from "@calcom/app-store/stripepayment/lib/client";
 import { useHandleBookEvent } from "@calcom/atoms/hooks/bookings/useHandleBookEvent";
 import dayjs from "@calcom/dayjs";
 import { sdkActionManager } from "@calcom/embed-core/embed-iframe";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
-import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
 import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
-import type { BookableEventType } from "@calcom/features/bookings/Booker/types";
+import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
+import type { BookableResource } from "@calcom/features/bookings/Booker/types";
 import { getQueryParam, updateQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
 import { mapBookingToMutationInput } from "@calcom/features/bookings/lib";
 import { useBookingSuccessRedirect } from "@calcom/features/bookings/lib/bookingSuccessRedirect";
@@ -59,15 +60,17 @@ export interface IUseBookings {
   metadata: Record<string, string>;
   teamMemberEmail?: string | null;
   isBookingDryRun?: boolean;
-  allEventTypes?: BookableEventType[];
+  allEventTypes?: BookableResource[];
 }
 
 export type SelectedBookingEntry = {
+  bookableResourceId?: number;
+  bookableResourceSlug: string;
   eventTypeId: number;
   eventTypeSlug: string;
   title: string;
   length: number;
-  schedulingType: BookableEventType["schedulingType"];
+  schedulingType: BookableResource["schedulingType"];
   start: string;
   dateKey: string;
 };
@@ -77,7 +80,7 @@ const buildSelectedBookingEntries = ({
   selectedDatesAndTimes,
   selectedDuration,
 }: {
-  allEventTypes?: BookableEventType[];
+  allEventTypes?: BookableResource[];
   selectedDatesAndTimes: { [key: string]: { [key: string]: string[] } } | null;
   selectedDuration: number | null;
 }): SelectedBookingEntry[] => {
@@ -86,16 +89,18 @@ const buildSelectedBookingEntries = ({
   }
 
   return allEventTypes
-    .flatMap((eventType) => {
-      const selectionsByDate = selectedDatesAndTimes[eventType.slug] ?? {};
+    .flatMap((resource) => {
+      const selectionsByDate = selectedDatesAndTimes[resource.slug] ?? {};
 
       return Object.entries(selectionsByDate).flatMap(([dateKey, slots]) =>
         slots.map((slot) => ({
-          eventTypeId: eventType.id,
-          eventTypeSlug: eventType.slug,
-          title: eventType.title,
-          length: selectedDuration ?? eventType.length,
-          schedulingType: eventType.schedulingType,
+          bookableResourceId: resource.bookableResourceId,
+          bookableResourceSlug: resource.slug,
+          eventTypeId: resource.eventTypeId ?? resource.id,
+          eventTypeSlug: resource.eventTypeSlug ?? resource.slug,
+          title: resource.title,
+          length: selectedDuration ?? resource.length,
+          schedulingType: resource.schedulingType,
           start: slot,
           dateKey,
         }))
@@ -152,6 +157,7 @@ const buildBookingInputForEntry = ({
       schedulingType: entry.schedulingType,
       recurringEvent: null,
     },
+    bookableResourceId: entry.bookableResourceId,
     date: entry.start,
     duration: entry.length,
     timeZone: timezone,

@@ -12,6 +12,7 @@ import type { Tracking } from "../../handleNewBooking/types";
 export type BookingOptions = {
   values: Record<string, unknown>;
   event: Pick<BookerEvent, "id" | "length" | "slug" | "schedulingType" | "recurringEvent">;
+  bookableResourceId?: number;
   date: string;
   // @NOTE: duration is not validated in this function
   duration: number | undefined | null;
@@ -38,6 +39,7 @@ export type BookingOptions = {
 export const mapBookingToMutationInput = ({
   values,
   event,
+  bookableResourceId,
   date,
   duration,
   timeZone,
@@ -77,6 +79,7 @@ export const mapBookingToMutationInput = ({
       .add(duration || event.length, "minute")
       .format(),
     eventTypeId: event.id,
+    bookableResourceId,
     eventTypeSlug: event.slug,
     timeZone: timeZone,
     language: language,

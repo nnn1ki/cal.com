@@ -51,7 +51,7 @@ const checkUnpublishedTeam = async (slug: string) => {
 
 const setupPlatformUser = async (user: PlatformUser) => {
   const { password: _password, ...restOfUser } = user;
-  const userData = {
+  const userCreateData = {
     ...restOfUser,
     emailVerified: new Date(),
     completedOnboarding: user.completedOnboarding ?? true,
@@ -70,11 +70,17 @@ const setupPlatformUser = async (user: PlatformUser) => {
           }
         : undefined,
   };
+  const userUpdateData = {
+    ...restOfUser,
+    emailVerified: new Date(),
+    completedOnboarding: user.completedOnboarding ?? true,
+    locale: "en",
+  };
 
   const platformUser = await prisma.user.upsert({
-    where: { email_username: { email: user.email, username: user.username } },
-    update: userData,
-    create: userData,
+    where: { email: user.email },
+    update: userUpdateData,
+    create: userCreateData,
   });
 
   await prisma.userPassword.upsert({
@@ -410,10 +416,7 @@ async function createOrganizationAndAddMembersAndTeams({
             console.log("Organization member already seeded, skipping");
             const existingUser = await prisma.user.findUnique({
               where: {
-                email_username: {
-                  email: member.memberData.email,
-                  username: member.memberData.username,
-                },
+                email: member.memberData.email,
               },
             });
             if (!existingUser) throw e;
@@ -435,8 +438,12 @@ async function createOrganizationAndAddMembersAndTeams({
   await Promise.all(
     usersOutsideOrg.map(async (user) => {
       await prisma.user.upsert({
-        where: { email_username: { email: user.email, username: user.username } },
-        update: {},
+        where: { email: user.email },
+        update: {
+          username: user.username,
+          name: user.name,
+          emailVerified: new Date(),
+        },
         create: {
           username: user.username,
           name: user.name,

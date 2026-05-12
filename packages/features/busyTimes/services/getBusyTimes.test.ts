@@ -31,10 +31,14 @@ const mockBookings = ({
   beforeEventBuffer = 0,
   afterEventBuffer = 0,
   seatsPerTimeSlot,
+  bookableResourceId = null,
+  eventTypeId = 1,
 }: {
   beforeEventBuffer?: number;
   afterEventBuffer?: number;
   seatsPerTimeSlot?: number;
+  bookableResourceId?: number | null;
+  eventTypeId?: number;
 }) => [
   {
     id: 1,
@@ -43,8 +47,9 @@ const mockBookings = ({
     title: "Booking Between X and Y",
     userId: 1,
     uid: "xxxx1",
+    bookableResourceId,
     eventType: {
-      id: 1,
+      id: eventTypeId,
       beforeEventBuffer,
       afterEventBuffer,
       seatsPerTimeSlot: seatsPerTimeSlot ?? null,
@@ -60,8 +65,9 @@ const mockBookings = ({
     title: "Booking Between X and Y",
     userId: 1,
     uid: "xxxx2",
+    bookableResourceId,
     eventType: {
-      id: 1,
+      id: eventTypeId,
       beforeEventBuffer,
       afterEventBuffer,
       seatsPerTimeSlot: seatsPerTimeSlot ?? null,
@@ -145,6 +151,62 @@ describe("getBusyTimes", () => {
       expect.objectContaining({
         start: dayjs(`${tomorrowDate}`).startOf("day").set("hour", 9).set("minute", 50).toDate(),
         end: dayjs(`${tomorrowDate}`).startOf("day").set("hour", 10).toDate(),
+      }),
+    ]);
+  });
+
+  it("filters bookings from sibling resources of the same event type", async () => {
+    const busyTimesService = getBusyTimesService();
+    const busyTimes = await busyTimesService.getBusyTimes({
+      credentials: [],
+      userId: 1,
+      eventTypeId: 1,
+      bookableResourceId: 101,
+      userEmail: "exampleuser1@example.com",
+      username: "exampleuser1",
+      bypassBusyCalendarTimes: false,
+      selectedCalendars: [],
+      startTime: startOfTomorrow.format(),
+      endTime: startOfTomorrow.endOf("day").format(),
+      currentBookings: [
+        mockBookings({ bookableResourceId: 202 })[0],
+        mockBookings({ bookableResourceId: 101 })[1],
+      ],
+    });
+
+    expect(busyTimes).toEqual([
+      expect.objectContaining({
+        start: dayjs(`${tomorrowDate}`).startOf("day").set("hour", 14).toDate(),
+        end: dayjs(`${tomorrowDate}`).startOf("day").set("hour", 15).toDate(),
+        source: "eventType-1-booking-2",
+      }),
+    ]);
+  });
+
+  it("ignores bookings from other event types when booking through a resource", async () => {
+    const busyTimesService = getBusyTimesService();
+    const busyTimes = await busyTimesService.getBusyTimes({
+      credentials: [],
+      userId: 1,
+      eventTypeId: 1,
+      bookableResourceId: 101,
+      userEmail: "exampleuser1@example.com",
+      username: "exampleuser1",
+      bypassBusyCalendarTimes: false,
+      selectedCalendars: [],
+      startTime: startOfTomorrow.format(),
+      endTime: startOfTomorrow.endOf("day").format(),
+      currentBookings: [
+        mockBookings({ eventTypeId: 2, bookableResourceId: 202 })[0],
+        mockBookings({ eventTypeId: 1, bookableResourceId: 101 })[1],
+      ],
+    });
+
+    expect(busyTimes).toEqual([
+      expect.objectContaining({
+        start: dayjs(`${tomorrowDate}`).startOf("day").set("hour", 14).toDate(),
+        end: dayjs(`${tomorrowDate}`).startOf("day").set("hour", 15).toDate(),
+        source: "eventType-1-booking-2",
       }),
     ]);
   });

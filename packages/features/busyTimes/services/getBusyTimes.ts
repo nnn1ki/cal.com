@@ -26,12 +26,39 @@ export interface IBusyTimesService {
 export class BusyTimesService {
   constructor(public readonly dependencies: IBusyTimesService) {}
 
+  private shouldConsiderBookingForBookableResource({
+    requestedEventTypeId,
+    requestedBookableResourceId,
+    bookingEventTypeId,
+    bookingBookableResourceId,
+  }: {
+    requestedEventTypeId?: number;
+    requestedBookableResourceId?: number;
+    bookingEventTypeId?: number | null;
+    bookingBookableResourceId?: number | null;
+  }) {
+    if (!requestedBookableResourceId) {
+      return true;
+    }
+
+    if (bookingBookableResourceId) {
+      return bookingBookableResourceId === requestedBookableResourceId;
+    }
+
+    if (!requestedEventTypeId) {
+      return false;
+    }
+
+    return bookingEventTypeId === requestedEventTypeId;
+  }
+
   async _getBusyTimes(params: {
     credentials: CredentialForCalendarService[];
     userId: number;
     userEmail: string;
     username: string;
     eventTypeId?: number;
+    bookableResourceId?: number;
     startTime: string;
     beforeEventBuffer?: number;
     afterEventBuffer?: number;
@@ -42,6 +69,7 @@ export class BusyTimesService {
     duration?: number | null;
     currentBookings?:
       | (Pick<Booking, "id" | "uid" | "userId" | "startTime" | "endTime" | "title"> & {
+          bookableResourceId?: number | null;
           eventType: Pick<
             EventType,
             "id" | "beforeEventBuffer" | "afterEventBuffer" | "seatsPerTimeSlot"
@@ -61,6 +89,7 @@ export class BusyTimesService {
       userEmail,
       username,
       eventTypeId,
+      bookableResourceId,
       startTime,
       endTime,
       beforeEventBuffer,
@@ -128,8 +157,17 @@ export class BusyTimesService {
       });
     }
 
+    const filteredBookings = bookings.filter((booking) =>
+      this.shouldConsiderBookingForBookableResource({
+        requestedEventTypeId: eventTypeId,
+        requestedBookableResourceId: bookableResourceId,
+        bookingEventTypeId: booking.eventType?.id ?? null,
+        bookingBookableResourceId: booking.bookableResourceId ?? null,
+      })
+    );
+
     const bookingSeatCountMap: { [x: string]: number } = {};
-    const busyTimes = bookings.reduce((aggregate: EventBusyDetails[], booking) => {
+    const busyTimes = filteredBookings.reduce((aggregate: EventBusyDetails[], booking) => {
       const { id, startTime, endTime, eventType, title, ...rest } = booking;
 
       const minutesToBlockBeforeEvent = (eventType?.beforeEventBuffer || 0) + (afterEventBuffer || 0);
@@ -185,7 +223,7 @@ export class BusyTimesService {
     logger.debug(
       `Busy Time from Cal Bookings ${JSON.stringify({
         busyTimes,
-        bookings: bookings?.map((booking) => getPiiFreeBooking(booking)),
+        bookings: filteredBookings.map((booking) => getPiiFreeBooking(booking)),
         numCredentials: credentials?.length,
       })}`
     );
@@ -241,7 +279,9 @@ export class BusyTimesService {
         });
 
         if (rescheduleUid) {
-          const originalRescheduleBooking = bookings.find((booking) => booking.uid === rescheduleUid);
+          const originalRescheduleBooking =
+            filteredBookings.find((booking) => booking.uid === rescheduleUid) ??
+            bookings.find((booking) => booking.uid === rescheduleUid);
           if (originalRescheduleBooking) {
             openSeatsDateRanges.push({
               start: dayjs(originalRescheduleBooking.startTime),

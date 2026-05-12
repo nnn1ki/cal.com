@@ -8,6 +8,7 @@ import { CreationSource } from "@calcom/prisma/enums";
 export const bookingCreateBodySchema = z.object({
   end: z.string().optional(),
   eventTypeId: z.number(),
+  bookableResourceId: z.number().optional(),
   eventTypeSlug: z.string().optional(),
   rescheduleUid: z.string().optional(),
   recurringEventId: z.string().optional(),

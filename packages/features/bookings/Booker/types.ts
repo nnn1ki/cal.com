@@ -4,7 +4,12 @@ import type React from "react";
 import type { GetBookingType } from "../lib/get-booking";
 
 export type Timezone = (typeof IntlSupportedTimeZones)[number];
-export type BookableEventType = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType">;
+export type BookableResource = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType"> & {
+  bookableResourceId?: number;
+  eventTypeId?: number;
+  eventTypeSlug?: string;
+};
+export type BookableEventType = BookableResource;
 
 export interface BookerProps {
   allEventType?: BookableEventType[];

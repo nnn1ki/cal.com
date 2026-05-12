@@ -625,6 +625,7 @@ async function handler(
     recurringCount,
     noEmail,
     eventTypeId,
+    bookableResourceId,
     eventTypeSlug,
     hasHashedBookingLink,
     language,
@@ -1006,6 +1007,7 @@ async function handler(
                 {
                   dateFrom: dayjs(start).tz(reqBody.timeZone).format(),
                   dateTo: dayjs(end).tz(reqBody.timeZone).format(),
+                  bookableResourceId,
                   timeZone: reqBody.timeZone,
                   originalRescheduledBooking: originalRescheduledBooking ?? null,
                 },
@@ -1021,6 +1023,7 @@ async function handler(
               {
                 dateFrom: dayjs(start).tz(reqBody.timeZone).format(),
                 dateTo: dayjs(end).tz(reqBody.timeZone).format(),
+                bookableResourceId,
                 timeZone: reqBody.timeZone,
                 originalRescheduledBooking,
               },
@@ -1040,6 +1043,7 @@ async function handler(
             {
               dateFrom: dayjs(reqBody.start).tz(reqBody.timeZone).format(),
               dateTo: dayjs(reqBody.end).tz(reqBody.timeZone).format(),
+              bookableResourceId,
               timeZone: reqBody.timeZone,
               originalRescheduledBooking,
             },
@@ -1069,6 +1073,7 @@ async function handler(
               {
                 dateFrom: dayjs(reqBody.start).tz(reqBody.timeZone).format(),
                 dateTo: dayjs(reqBody.end).tz(reqBody.timeZone).format(),
+                bookableResourceId,
                 timeZone: reqBody.timeZone,
                 originalRescheduledBooking,
               },
@@ -1182,6 +1187,7 @@ async function handler(
                     {
                       dateFrom: dayjs(start).tz(reqBody.timeZone).format(),
                       dateTo: dayjs(end).tz(reqBody.timeZone).format(),
+                      bookableResourceId,
                       timeZone: reqBody.timeZone,
                       originalRescheduledBooking,
                     },
@@ -1896,6 +1902,7 @@ async function handler(
           user: reqBody.user,
           metadata: reqBody.metadata,
           recurringEventId: reqBody.recurringEventId,
+          bookableResourceId,
         },
         eventType: {
           eventTypeData: eventType,

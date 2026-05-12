@@ -57,6 +57,9 @@ export type CalendarPublicActions = {
   onEventClick?: (event: CalendarEvent) => void;
   onEventContextMenu?: (event: CalendarEvent) => void;
   onEmptyCellClick?: (date: Date, resource?: CalendarResource) => void;
+  onEmptyCellMouseDown?: (date: Date, resource?: CalendarResource) => void;
+  onEmptyCellMouseEnter?: (date: Date, resource?: CalendarResource) => void;
+  onEmptyCellMouseUp?: (date: Date, resource?: CalendarResource) => void;
   onDateChange?: (startDate: Date, endDate?: Date) => void;
 };
 

@@ -1,11 +1,10 @@
+import { syncBookableResourceWithEventType } from "@calcom/features/bookings/lib/bookableResources/syncBookableResourceWithEventType";
+import { CalVideoSettingsRepository } from "@calcom/features/calVideoSettings/repositories/CalVideoSettingsRepository";
 import { EventTypeRepository } from "@calcom/features/eventtypes/repositories/eventTypeRepository";
 import { generateHashedLink } from "@calcom/lib/generateHashedLink";
-import { CalVideoSettingsRepository } from "@calcom/features/calVideoSettings/repositories/CalVideoSettingsRepository";
 import { prisma } from "@calcom/prisma";
 import { Prisma } from "@calcom/prisma/client";
-
 import { TRPCError } from "@trpc/server";
-
 import type { TrpcSessionUser } from "../../../../types";
 import { setDestinationCalendarHandler } from "../../../viewer/calendars/setDestinationCalendar.handler";
 import type { TDuplicateInputSchema } from "./duplicate.schema";
@@ -165,6 +164,7 @@ export const duplicateHandler = async ({ ctx, input }: DuplicateOptions) => {
 
     const eventTypeRepo = new EventTypeRepository(prisma);
     const newEventType = await eventTypeRepo.create(data);
+    await syncBookableResourceWithEventType(prisma, newEventType);
 
     // Create custom inputs
     if (customInputs) {

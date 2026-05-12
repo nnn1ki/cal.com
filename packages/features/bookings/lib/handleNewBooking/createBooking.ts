@@ -29,6 +29,7 @@ type CreateBookingParams = {
     user: ReqBodyWithEnd["user"];
     metadata: ReqBodyWithEnd["metadata"];
     recurringEventId: ReqBodyWithEnd["recurringEventId"];
+    bookableResourceId: ReqBodyWithEnd["bookableResourceId"];
   };
   eventType: {
     eventTypeData: NewBookingEventType;
@@ -197,6 +198,10 @@ function getEventTypeRel(eventTypeId: EventTypeId) {
   return eventTypeId ? { connect: { id: eventTypeId } } : {};
 }
 
+function getBookableResourceRel(bookableResourceId?: number) {
+  return bookableResourceId ? { connect: { id: bookableResourceId } } : undefined;
+}
+
 function getAttendeesData(evt: Pick<CalendarEvent, "attendees" | "team">) {
   //if attendee is team member, it should fetch their locale not booker's locale
   //perhaps make email fetch request to see if his locale is stored, else
@@ -228,6 +233,7 @@ function buildNewBookingData(params: CreateBookingParams) {
 
   const attendeesData = getAttendeesData(evt);
   const eventTypeRel = getEventTypeRel(eventType.id);
+  const bookableResourceRel = getBookableResourceRel(reqBody.bookableResourceId);
   const reroutingFormResponseUpdateData = getReroutingFormResponseUpdateData({
     reroutingFormResponses,
     routingFormResponseId,
@@ -246,6 +252,7 @@ function buildNewBookingData(params: CreateBookingParams) {
     oneTimePassword: evt.oneTimePassword,
     location: evt.location,
     eventType: eventTypeRel,
+    bookableResource: bookableResourceRel,
     smsReminderNumber: input.smsReminderNumber,
     metadata: reqBody.metadata,
     attendees: {

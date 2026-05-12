@@ -154,7 +154,7 @@ export class AvailableSlotsService {
 
     await _cleanupExpiredSlots({ eventTypeId });
 
-    const reservedSlots = slotsSelectedByOtherUsers;
+    const reservedSlots = slotsSelectedByOtherUsers.filter((slot) => slot.eventTypeId === eventTypeId);
 
     return reservedSlots;
 
@@ -880,6 +880,7 @@ export class AvailableSlotsService {
     silentCalendarFailures: boolean;
     mode?: CalendarFetchMode;
   }) {
+    const shouldBypassBusyCalendarTimes = bypassBusyCalendarTimes || Boolean(input.bookableResourceId);
     const usersWithCredentials = this.getUsersWithCredentials({
       hosts,
     });
@@ -1009,11 +1010,12 @@ export class AvailableSlotsService {
         dateFrom: startTime.format(),
         dateTo: endTime.format(),
         eventTypeId: eventType.id,
+        bookableResourceId: input.bookableResourceId,
         afterEventBuffer: eventType.afterEventBuffer,
         beforeEventBuffer: eventType.beforeEventBuffer,
         duration: input.duration || 0,
         returnDateOverrides: false,
-        bypassBusyCalendarTimes,
+        bypassBusyCalendarTimes: shouldBypassBusyCalendarTimes,
         silentlyHandleCalendarFailures: silentCalendarFailures,
         mode,
       },

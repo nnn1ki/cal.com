@@ -58,7 +58,13 @@ const _ensureAvailableUsers = async (
   eventType: Omit<getEventTypeResponse, "users"> & {
     users: IsFixedAwareUser[];
   },
-  input: { dateFrom: string; dateTo: string; timeZone: string; originalRescheduledBooking?: BookingType },
+  input: {
+    dateFrom: string;
+    dateTo: string;
+    bookableResourceId?: number;
+    timeZone: string;
+    originalRescheduledBooking?: BookingType;
+  },
   loggerWithEventDetails: Logger<unknown>,
   mode?: CalendarFetchMode
   // ReturnType hint of at least one IsFixedAwareUser, as it's made sure at least one entry exists
@@ -102,7 +108,7 @@ const _ensureAvailableUsers = async (
       dateTo: endDateTimeUtc.format(),
       beforeEventBuffer: eventType.beforeEventBuffer,
       afterEventBuffer: eventType.afterEventBuffer,
-      bypassBusyCalendarTimes: false,
+      bypassBusyCalendarTimes: Boolean(input.bookableResourceId),
       mode,
       withSource: true,
     },

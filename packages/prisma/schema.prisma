@@ -180,6 +180,7 @@ model EventType {
   team                               Team?                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   teamId                             Int?
   hashedLink                         HashedLink[]
+  bookableResources                  BookableResource[]
   bookings                           Booking[]
   availability                       Availability[]
   webhooks                           Webhook[]
@@ -881,6 +882,8 @@ model Booking {
   references                   BookingReference[]
   eventType                    EventType?                        @relation(fields: [eventTypeId], references: [id])
   eventTypeId                  Int?
+  bookableResource             BookableResource?                 @relation(fields: [bookableResourceId], references: [id])
+  bookableResourceId           Int?
   title                        String
   description                  String?
   customInputs                 Json?
@@ -941,6 +944,7 @@ model Booking {
   // @@partial_index([reassignById])
 
   @@index([eventTypeId])
+  @@index([bookableResourceId])
   @@index([userId])
   @@index([destinationCalendarId])
   @@index([recurringEventId])
@@ -951,7 +955,24 @@ model Booking {
   @@index([userId, endTime])
   @@index([userId, status, startTime])
   @@index([eventTypeId, status])
+  @@index([bookableResourceId, status])
   @@index([userId, createdAt])
+}
+
+model BookableResource {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String
+  position    Int       @default(0)
+  isActive    Boolean   @default(true)
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  eventTypeId Int
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([eventTypeId, slug])
+  @@index([eventTypeId, isActive, position])
 }
 
 model Tracking {

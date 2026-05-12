@@ -51,6 +51,7 @@ type GetUsersAvailabilityQuery = {
   dateFrom: string;
   dateTo: string;
   eventTypeId?: number;
+  bookableResourceId?: number;
   afterEventBuffer?: number;
   beforeEventBuffer?: number;
   duration?: number;
@@ -65,6 +66,7 @@ const availabilitySchema: z.ZodType<GetUserAvailabilityParams, z.ZodTypeDef, unk
   dateFrom: stringToDayjsZod,
   dateTo: stringToDayjsZod,
   eventTypeId: z.number().optional(),
+  bookableResourceId: z.number().optional(),
   afterEventBuffer: z.number().optional(),
   beforeEventBuffer: z.number().optional(),
   duration: z.number().optional(),
@@ -83,6 +85,7 @@ type GetUserAvailabilityParams = {
   dateFrom: Dayjs;
   dateTo: Dayjs;
   eventTypeId?: number;
+  bookableResourceId?: number;
   afterEventBuffer?: number;
   beforeEventBuffer?: number;
   duration?: number;
@@ -134,6 +137,7 @@ export type GetUserAvailabilityInitialData = {
   currentSeats?: CurrentSeats;
   rescheduleUid?: string | null;
   currentBookings?: (Pick<Booking, "id" | "uid" | "userId" | "startTime" | "endTime" | "title"> & {
+    bookableResourceId?: number | null;
     eventType: Pick<
       PrismaEventType,
       "id" | "beforeEventBuffer" | "afterEventBuffer" | "seatsPerTimeSlot"
@@ -368,6 +372,7 @@ export class UserAvailabilityService {
       dateFrom,
       dateTo,
       eventTypeId,
+      bookableResourceId,
       afterEventBuffer,
       beforeEventBuffer,
       duration,
@@ -589,6 +594,7 @@ export class UserAvailabilityService {
         startTime: getBusyTimesStart,
         endTime: getBusyTimesEnd,
         eventTypeId,
+        bookableResourceId,
         userId: user.id,
         userEmail: user.email,
         username: `${user.username}`,

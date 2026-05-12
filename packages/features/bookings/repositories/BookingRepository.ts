@@ -746,6 +746,7 @@ export class BookingRepository implements IBookingRepository {
       id: true,
       uid: true,
       userId: true,
+      bookableResourceId: true,
       startTime: true,
       endTime: true,
       title: true,

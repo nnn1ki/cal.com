@@ -107,6 +107,63 @@ describe("getSchedule", () => {
       });
     });
 
+    test("should ignore reservations from another event type", async () => {
+      vi.setSystemTime("2024-05-31T01:30:00Z");
+      const yesterdayDateString = "2024-05-30";
+      const plus2DateString = "2024-06-02";
+      const plus5DateString = "2024-06-05";
+
+      const scenarioData: ScheduleScenario = {
+        ...getBaseScenarioData(),
+        eventTypes: [
+          ...getBaseScenarioData().eventTypes,
+          {
+            id: 2,
+            slotInterval: 45,
+            length: 45,
+            users: [{ id: 101 }],
+          },
+        ],
+        selectedSlots: [
+          {
+            eventTypeId: 2,
+            userId: 101,
+            slotUtcStartDate: new Date(`${plus2DateString}T04:00:00.000Z`),
+            slotUtcEndDate: new Date(`${plus2DateString}T04:45:00.000Z`),
+            uid: "other-user-uid",
+            releaseAt: new Date(Date.now() + 1000 * 60 * 60),
+          },
+        ],
+      };
+
+      await createBookingScenario(scenarioData);
+
+      await mockCalendarToHaveNoBusySlots("googlecalendar");
+
+      const schedule = await availableSlotsService.getAvailableSlots({
+        input: getTestScheduleInput({ yesterdayDateString, plus5DateString }),
+      });
+
+      expect(schedule).toHaveTimeSlots(
+        [
+          "04:00:00.000Z",
+          "04:45:00.000Z",
+          "05:30:00.000Z",
+          "06:15:00.000Z",
+          "07:00:00.000Z",
+          "07:45:00.000Z",
+          "08:30:00.000Z",
+          "09:15:00.000Z",
+          "10:00:00.000Z",
+          "10:45:00.000Z",
+          "11:30:00.000Z",
+        ],
+        {
+          dateString: plus2DateString,
+        }
+      );
+    });
+
     test("should keep all slots available when slot is reserved by the same user", async () => {
       // In IST timezone, it is 2024-05-31T07:00:00
       vi.setSystemTime("2024-05-31T01:30:00Z");
@@ -303,10 +360,10 @@ describe("getSchedule", () => {
         input: getTestScheduleInput({ yesterdayDateString, plus5DateString }),
       });
 
-      // The 4:00 slot should still be unavailable even when the reservation is for a different event type
+      // Reservations from another event type must not block the current event type.
       expect(schedule).toHaveTimeSlots(
         [
-          // "04:00:00.000Z",
+          "04:00:00.000Z",
           "04:45:00.000Z",
           "05:30:00.000Z",
           "06:15:00.000Z",

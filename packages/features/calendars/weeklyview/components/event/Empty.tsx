@@ -163,9 +163,19 @@ type CellProps = {
 function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resource }: CellProps) {
   const { timeFormat } = useTimePreferences();
 
-  const { onEmptyCellClick, hoverEventDuration, selectedCellKeys } = useCalendarStore(
+  const {
+    onEmptyCellClick,
+    onEmptyCellMouseDown,
+    onEmptyCellMouseEnter,
+    onEmptyCellMouseUp,
+    hoverEventDuration,
+    selectedCellKeys,
+  } = useCalendarStore(
     (state) => ({
       onEmptyCellClick: state.onEmptyCellClick,
+      onEmptyCellMouseDown: state.onEmptyCellMouseDown,
+      onEmptyCellMouseEnter: state.onEmptyCellMouseEnter,
+      onEmptyCellMouseUp: state.onEmptyCellMouseUp,
       hoverEventDuration: state.hoverEventDuration,
       selectedCellKeys: state.selectedCellKeys ?? [],
     }),
@@ -191,7 +201,19 @@ function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resourc
         overflow: "visible",
         top: topOffsetMinutes ? `calc(${topOffsetMinutes}*var(--one-minute-height))` : undefined,
       }}
+      onMouseDown={() => {
+        onEmptyCellMouseDown?.(timeSlot.toDate(), resource);
+      }}
+      onMouseEnter={() => {
+        onEmptyCellMouseEnter?.(timeSlot.toDate(), resource);
+      }}
+      onMouseUp={() => {
+        onEmptyCellMouseUp?.(timeSlot.toDate(), resource);
+      }}
       onClick={() => {
+        if (onEmptyCellMouseDown || onEmptyCellMouseUp) {
+          return;
+        }
         onEmptyCellClick?.(timeSlot.toDate(), resource);
       }}>
       {!isDisabled && cellDuration !== 0 && (

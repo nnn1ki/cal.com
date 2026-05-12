@@ -1,5 +1,9 @@
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
-import type { BookableEventType } from "@calcom/features/bookings/Booker/types";
+import type { BookableResource } from "@calcom/features/bookings/Booker/types";
+import {
+  syncBookableResourcesWithEventTypes,
+  syncBookableResourceWithEventType,
+} from "@calcom/features/bookings/lib/bookableResources/syncBookableResourceWithEventType";
 import type { GetBookingType } from "@calcom/features/bookings/lib/get-booking";
 import { getBookingForReschedule, getBookingForSeatedEvent } from "@calcom/features/bookings/lib/get-booking";
 import { orgDomainConfig } from "@calcom/features/ee/organizations/lib/orgDomains";
@@ -30,7 +34,7 @@ type Props = {
   themeBasis: null | string;
   orgBannerUrl: null;
 
-  allEventTypes: BookableEventType[];
+  allEventTypes: BookableResource[];
 };
 
 async function processReschedule({
@@ -293,6 +297,9 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
     } as const;
   }
 
+  const syncedEventTypeResource = await syncBookableResourceWithEventType(prisma, eventData);
+  const syncedPublicEventTypeResources = await syncBookableResourcesWithEventTypes(prisma, allEventTypes);
+
   // Redirect if no routing form response and redirect URL is configured
   // Don't redirect if this is a reschedule or seated booking flow
   const hasRoutingFormResponse =
@@ -331,7 +338,9 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
     bookingUid: bookingUid ? `${bookingUid}` : null,
     rescheduleUid: null,
     orgBannerUrl: eventData?.owner?.profile?.organization?.bannerUrl ?? null,
-    allEventTypes,
+    allEventTypes: syncedPublicEventTypeResources.length
+      ? syncedPublicEventTypeResources
+      : [syncedEventTypeResource],
   };
   if (rescheduleUid) {
     const processRescheduleResult = await processReschedule({

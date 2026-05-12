@@ -329,7 +329,7 @@ describe("useBookings - Instant Booking Query", () => {
       title: "Resource booking",
       startTime: "2024-01-01T10:00:00.000Z",
       endTime: "2024-01-01T10:30:00.000Z",
-      eventTypeId: 42,
+      eventTypeId: 77,
       paymentRequired: false,
       isDryRun: false,
       user: { email: "host@example.com", timeZone: "UTC" },
@@ -367,10 +367,13 @@ describe("useBookings - Instant Booking Query", () => {
           allEventTypes: [
             {
               id: 42,
+              bookableResourceId: 42,
               slug: "resource-event",
               title: "Resource Event",
               length: 30,
               schedulingType: null,
+              eventTypeId: 77,
+              eventTypeSlug: "parent-event",
             },
           ],
         }),
@@ -384,8 +387,9 @@ describe("useBookings - Instant Booking Query", () => {
     await waitFor(() => {
       expect(createBooking).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventTypeId: 42,
-          eventTypeSlug: "resource-event",
+          eventTypeId: 77,
+          eventTypeSlug: "parent-event",
+          bookableResourceId: 42,
           user: "testuser",
           start: "2024-01-01T10:00:00+00:00",
         })
