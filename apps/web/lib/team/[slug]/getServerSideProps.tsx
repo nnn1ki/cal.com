@@ -182,6 +182,7 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
       requiresBookerEmailVerification: type.requiresBookerEmailVerification,
       canSendCalVideoTranscriptionEmails: type.canSendCalVideoTranscriptionEmails,
       seatsPerTimeSlot: type.seatsPerTimeSlot,
+      seatsShowAvailabilityCount: type.seatsShowAvailabilityCount,
       // Additional fields needed by EventTypeDescription
       metadata: type.metadata,
       descriptionAsSafeHTML: markdownToSafeHTML(type.description),

@@ -4,6 +4,7 @@ import dayjs from "@calcom/dayjs";
 import { useTimePreferences } from "@calcom/features/bookings/lib";
 import { Calendar } from "@calcom/features/calendars/weeklyview/components/Calendar";
 import type { CalendarEvent } from "@calcom/features/calendars/weeklyview/types/events";
+import type { CalendarResource } from "@calcom/features/calendars/weeklyview/types/state";
 import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
 import { useEffect, useMemo } from "react";
@@ -81,6 +82,25 @@ export function BookingCalendarView({
     return Array.from(new Map(types.map((et) => [et.id, et])).values());
   }, [bookings]);
 
+  const resources = useMemo<CalendarResource[]>(() => {
+    return eventTypes
+      .filter(
+        (
+          eventType
+        ): eventType is typeof eventType & {
+          id: number;
+          slug: string;
+          title: string;
+        } => Boolean(eventType.id && eventType.slug && eventType.title)
+      )
+      .map((eventType) => ({
+        id: eventType.id,
+        slug: eventType.slug,
+        title: eventType.title,
+        length: eventType.length,
+      }));
+  }, [eventTypes]);
+
   return (
     <>
       <div
@@ -93,12 +113,7 @@ export function BookingCalendarView({
           startHour={0}
           endHour={23}
           events={events}
-          resources={eventTypes.map((eventType) => ({
-            id: eventType.id,
-            slug: eventType.slug,
-            title: eventType.title,
-            length: eventType.length,
-          }))}
+          resources={resources}
           startDate={startDate}
           endDate={endDate}
           gridCellsPerHour={4}

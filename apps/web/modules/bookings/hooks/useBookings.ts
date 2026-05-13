@@ -11,6 +11,7 @@ import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/
 import type { BookableResource } from "@calcom/features/bookings/Booker/types";
 import { getQueryParam, updateQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
 import { mapBookingToMutationInput } from "@calcom/features/bookings/lib";
+import type { BookingOptions } from "@calcom/features/bookings/lib/client/booking-event-form/booking-to-mutation-input-mapper";
 import { useBookingSuccessRedirect } from "@calcom/features/bookings/lib/bookingSuccessRedirect";
 import { storeDecoyBooking } from "@calcom/features/bookings/lib/client/decoyBookingStore";
 import { createBooking } from "@calcom/features/bookings/lib/create-booking";
@@ -134,7 +135,7 @@ const buildBookingInputForEntry = ({
   isBookingDryRun,
 }: {
   entry: SelectedBookingEntry;
-  values: ReturnType<UseBookingFormReturnType["bookingForm"]["getValues"]>;
+  values: BookingOptions["values"];
   timezone: string;
   language: string;
   username: string | null;

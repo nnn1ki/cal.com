@@ -51,7 +51,10 @@ const existingBookableResourceSelect = {
   position: true,
 } as const;
 
-const bookableResourceOrderBy = [{ position: "asc" }, { id: "asc" }] as const;
+const bookableResourceOrderBy: [{ position: "asc" }, { id: "asc" }] = [
+  { position: "asc" },
+  { id: "asc" },
+];
 
 const mapToBookableResource = (
   eventType: SyncableEventType,

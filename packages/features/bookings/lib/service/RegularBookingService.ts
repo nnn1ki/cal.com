@@ -176,6 +176,7 @@ type CreatedBooking = Booking & {
 type ReturnTypeCreateBooking = Awaited<ReturnType<typeof createBooking>>;
 export const buildDryRunBooking = ({
   eventTypeId,
+  bookableResourceId,
   organizerUser,
   eventName,
   startTime,
@@ -186,6 +187,7 @@ export const buildDryRunBooking = ({
   isManagedEventType,
 }: {
   eventTypeId: number;
+  bookableResourceId?: number;
   organizerUser: {
     id: number;
     uuid: string;
@@ -218,6 +220,7 @@ export const buildDryRunBooking = ({
     iCalUID: "DRY_RUN_ICAL_UID",
     status: BookingStatus.ACCEPTED,
     eventTypeId: eventTypeId,
+    bookableResourceId: bookableResourceId ?? null,
     user: sanitizedOrganizerUser,
     userId: sanitizedOrganizerUser.id,
     userUuid: sanitizedOrganizerUser.uuid,
@@ -2011,6 +2014,7 @@ async function handler(
     } else {
       const { booking: dryRunBooking, troubleshooterData: _troubleshooterData } = buildDryRunBooking({
         eventTypeId,
+        bookableResourceId,
         organizerUser,
         eventName,
         startTime: reqBody.start,
@@ -2037,6 +2041,10 @@ async function handler(
       });
     }
     throw err;
+  }
+
+  if (!booking) {
+    throw new ErrorWithCode(ErrorCode.InternalServerError, "Booking creation returned no booking");
   }
 
   // After polling videoBusyTimes, credentials might have been changed due to refreshment, so query them again.

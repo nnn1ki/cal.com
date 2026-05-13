@@ -10,7 +10,7 @@ ARG CALCOM_TELEMETRY_DISABLED
 ARG DATABASE_URL
 ARG NEXTAUTH_SECRET=secret
 ARG CALENDSO_ENCRYPTION_KEY=secret
-ARG MAX_OLD_SPACE_SIZE=6144
+ARG MAX_OLD_SPACE_SIZE=10240
 ARG NEXT_PUBLIC_API_V2_URL
 ARG CSP_POLICY
 
@@ -44,10 +44,10 @@ RUN yarn config set httpTimeout 1200000
 RUN npx turbo prune --scope=@calcom/web --scope=@calcom/trpc --docker
 RUN yarn install
 # Build and make embed servable from web/public/embed folder
-RUN yarn workspace @calcom/trpc run build
+RUN NODE_OPTIONS=--max-old-space-size=${MAX_OLD_SPACE_SIZE} yarn workspace @calcom/trpc run build
 RUN yarn --cwd packages/embeds/embed-core workspace @calcom/embed-core run build
 RUN yarn --cwd apps/web workspace @calcom/web run copy-app-store-static
-RUN yarn --cwd apps/web workspace @calcom/web run build
+RUN NODE_OPTIONS=--max-old-space-size=${MAX_OLD_SPACE_SIZE} yarn --cwd apps/web workspace @calcom/web run build
 RUN rm -rf node_modules/.cache .yarn/cache apps/web/.next/cache
 
 FROM node:20 AS builder-two
