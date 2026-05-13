@@ -74,6 +74,7 @@ type UserPageProps = {
     | "currency"
     | "recurringEvent"
     | "seatsPerTimeSlot"
+    | "seatsShowAvailabilityCount"
     | "schedulingType"
   >)[];
   eventData: NonNullable<Awaited<ReturnType<typeof getPublicEvent>>> | null;
@@ -83,13 +84,18 @@ type UserPageProps = {
 } & EmbedProps;
 
 const mapEventTypeToBookableResource = (
-  eventType: Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType">
+  eventType: Pick<
+    EventType,
+    "id" | "title" | "slug" | "length" | "schedulingType" | "seatsPerTimeSlot" | "seatsShowAvailabilityCount"
+  >
 ): BookableResource => ({
   id: eventType.id,
   title: eventType.title,
   slug: eventType.slug,
   length: eventType.length,
   schedulingType: eventType.schedulingType,
+  seatsPerTimeSlot: eventType.seatsPerTimeSlot,
+  seatsShowAvailabilityCount: eventType.seatsShowAvailabilityCount,
   eventTypeId: eventType.id,
   eventTypeSlug: eventType.slug,
 });

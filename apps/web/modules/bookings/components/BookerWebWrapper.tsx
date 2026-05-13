@@ -50,6 +50,14 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     : clientFetchedEvent;
 
   const bookerLayout = useBookerLayout(event.data?.profile?.bookerLayouts);
+  const initialResponsiveLayout =
+    bookerLayout.isMobile &&
+    props.initialLayout !== "week_view" &&
+    props.initialLayout !== "column_view" &&
+    bookerLayout.defaultLayout !== "week_view" &&
+    bookerLayout.defaultLayout !== "column_view"
+      ? "mobile"
+      : props.initialLayout ?? bookerLayout.defaultLayout;
   const selectedDate = useBookerStoreContext((state) => state.selectedDate);
   const isRedirect = searchParams?.get("redirected") === "true" || false;
   const fromUserNameRedirected = searchParams?.get("username") || "";
@@ -71,7 +79,7 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     rescheduleUid,
     rescheduledBy,
     bookingUid: bookingUid,
-    layout: bookerLayout.isMobile ? "mobile" : props.initialLayout ?? bookerLayout.defaultLayout,
+    layout: initialResponsiveLayout,
     org: props.entity.orgSlug,
     timezone,
   });
@@ -81,7 +89,7 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     rescheduleUid,
     rescheduledBy,
     bookingUid: bookingUid,
-    layout: bookerLayout.isMobile ? "mobile" : props.initialLayout ?? bookerLayout.defaultLayout,
+    layout: initialResponsiveLayout,
     org: props.entity.orgSlug,
     timezone,
   });

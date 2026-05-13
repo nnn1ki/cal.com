@@ -63,8 +63,24 @@ export function Header({
     [setLayout, layout]
   );
 
-  if (isMobile || !enabledLayouts) return null;
+  if (!enabledLayouts) return null;
 
+  if (isMobile) {
+    if (isMonthView) {
+      return null;
+    }
+
+    return (
+      <div className="border-default bg-default dark:bg-cal-muted flex items-center justify-end gap-2 border-b px-4 py-3">
+        <TimeFormatToggle />
+        <LayoutToggleWithData
+          layout={layout}
+          enabledLayouts={enabledLayouts}
+          onLayoutToggle={onLayoutToggle}
+        />
+      </div>
+    );
+  }
   // In month view we only show the layout toggle.
   if (isMonthView) {
     return (
@@ -150,27 +166,11 @@ export function Header({
       <div className="ml-auto flex gap-2">
         {renderOverlay?.()}
         <TimeFormatToggle />
-        <div className="fixed top-4 ltr:right-4 rtl:left-4">
-          <LayoutToggleWithData
-            layout={layout}
-            enabledLayouts={enabledLayouts}
-            onLayoutToggle={onLayoutToggle}
-          />
-        </div>
-        {/*
-          This second layout toggle is hidden, but needed to reserve the correct spot in the DIV
-          for the fixed toggle above to fit into. If we wouldn't make it fixed in this view, the transition
-          would be really weird, because the element is positioned fixed in the month view, and then
-          when switching layouts wouldn't anymore, causing it to animate from the center to the top right,
-          while it actually already was on place. That's why we have this element twice.
-        */}
-        <div className="pointer-events-none opacity-0" aria-hidden>
-          <LayoutToggleWithData
-            layout={layout}
-            enabledLayouts={enabledLayouts}
-            onLayoutToggle={onLayoutToggle}
-          />
-        </div>
+        <LayoutToggleWithData
+          layout={layout}
+          enabledLayouts={enabledLayouts}
+          onLayoutToggle={onLayoutToggle}
+        />
       </div>
     </div>
   );

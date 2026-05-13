@@ -6,6 +6,7 @@ import "./__mocks__/DryRunMessage";
 import "./__mocks__/EventMeta";
 import "./__mocks__/Header";
 import "./__mocks__/LargeCalendar";
+import "./__mocks__/ResourceColumnsView";
 import "./__mocks__/Section";
 import { constantsScenarios } from "@calcom/lib/__mocks__/constants";
 import "@calcom/lib/__mocks__/logger";

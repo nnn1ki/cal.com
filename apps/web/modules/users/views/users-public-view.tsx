@@ -2,6 +2,7 @@
 
 import { useEmbedNonStylesConfig, useIsEmbed } from "@calcom/embed-core/embed-iframe";
 import useTheme from "@calcom/lib/hooks/useTheme";
+import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import { UserAvatar } from "@calcom/ui/components/avatar";
 import { Icon } from "@calcom/ui/components/icon";
 import { OrgBanner } from "@calcom/ui/components/organization-banner";
@@ -38,6 +39,19 @@ export function UserPage(props: PageProps) {
   const isEventListEmpty = eventTypes.length === 0 || !eventData;
   const isOrg = !!user?.profile?.organization;
   const pageWidthClass = isEventListEmpty ? "max-w-3xl" : "max-w-[96rem]";
+  const publicUserBookerEventData = eventData
+    ? {
+        ...eventData,
+        profile: {
+          ...eventData.profile,
+          bookerLayouts: {
+            ...eventData.profile.bookerLayouts,
+            enabledLayouts: [BookerLayouts.WEEK_VIEW, BookerLayouts.COLUMN_VIEW],
+            defaultLayout: BookerLayouts.WEEK_VIEW,
+          },
+        },
+      }
+    : eventData;
 
   return (
     <>
@@ -106,13 +120,13 @@ export function UserPage(props: PageProps) {
               <div className="w-full">
                 <Booker
                   username={user.profile.username ?? profile.username ?? ""}
-                  eventSlug={eventData.slug}
+                  eventSlug={publicUserBookerEventData.slug}
                   initialLayout="week_view"
                   allEventType={allEventTypes}
                   hideBranding={false}
-                  eventData={eventData}
-                  entity={{ ...eventData.entity, eventTypeId: eventData.id }}
-                  durationConfig={eventData.metadata?.multipleDuration}
+                  eventData={publicUserBookerEventData}
+                  entity={{ ...publicUserBookerEventData.entity, eventTypeId: publicUserBookerEventData.id }}
+                  durationConfig={publicUserBookerEventData.metadata?.multipleDuration}
                   orgBannerUrl={orgBannerUrl}
                 />
               </div>

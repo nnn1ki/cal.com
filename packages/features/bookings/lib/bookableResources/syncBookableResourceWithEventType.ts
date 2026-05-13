@@ -1,7 +1,10 @@
 import type { BookableResource as BookerBookableResource } from "@calcom/features/bookings/Booker/types";
 import type { EventType } from "@calcom/prisma/client";
 
-type SyncableEventType = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType">;
+type SyncableEventType = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType"> & {
+  seatsPerTimeSlot?: EventType["seatsPerTimeSlot"];
+  seatsShowAvailabilityCount?: EventType["seatsShowAvailabilityCount"];
+};
 
 type ExistingBookableResource = {
   id: number;
@@ -60,6 +63,8 @@ const mapToBookableResource = (
   slug: resource.slug,
   length: eventType.length,
   schedulingType: eventType.schedulingType,
+  seatsPerTimeSlot: eventType.seatsPerTimeSlot,
+  seatsShowAvailabilityCount: eventType.seatsShowAvailabilityCount,
   eventTypeId: eventType.id,
   eventTypeSlug: eventType.slug,
 });

@@ -17,6 +17,7 @@ export const baseEventTypeSelect = {
   requiresBookerEmailVerification: true,
   canSendCalVideoTranscriptionEmails: true,
   seatsPerTimeSlot: true,
+  seatsShowAvailabilityCount: true,
 } satisfies Prisma.EventTypeSelect;
 
 export const bookEventTypeSelect = {

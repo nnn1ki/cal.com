@@ -70,6 +70,8 @@ export const LargeCalendar = ({
         slug: resource.slug,
         title: resource.title,
         length: resource.length,
+        seatsPerTimeSlot: resource.seatsPerTimeSlot,
+        seatsShowAvailabilityCount: resource.seatsShowAvailabilityCount,
       })),
     [allEventType]
   );
@@ -125,15 +127,35 @@ export const LargeCalendar = ({
       );
     });
   }, [resources, selectedDatesAndTimes]);
+  const selectableResourceTimeSlots = useMemo<CalendarAvailableTimeslotsByResource>(() => {
+    return resources.reduce<CalendarAvailableTimeslotsByResource>((acc, resource) => {
+      const slotsByDate = resourceTimeSlots[String(resource.id)] ?? {};
+
+      acc[String(resource.id)] = Object.fromEntries(
+        Object.entries(slotsByDate).map(([dateKey, slots]) => [
+          dateKey,
+          slots.filter((slot) => {
+            if (!resource.seatsPerTimeSlot || resource.seatsPerTimeSlot <= 0) {
+              return true;
+            }
+
+            return (slot.attendees ?? 0) < resource.seatsPerTimeSlot;
+          }),
+        ])
+      );
+
+      return acc;
+    }, {});
+  }, [resourceTimeSlots, resources]);
   const selectableCells = useMemo(
     () =>
       isLoading || !resources.length
         ? new Map<string, CalendarSelectionCell>()
         : createSelectableCells({
             resources,
-            resourceTimeSlots,
+            resourceTimeSlots: selectableResourceTimeSlots,
           }),
-    [isLoading, resourceTimeSlots, resources]
+    [isLoading, selectableResourceTimeSlots, resources]
   );
   const [dragSelection, setDragSelection] = useState<{
     anchorCell: CalendarSelectionCell;

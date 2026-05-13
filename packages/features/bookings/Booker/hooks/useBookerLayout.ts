@@ -38,17 +38,18 @@ export const useBookerLayout = (
     isTablet ? extraDaysConfig[layout].tablet : extraDaysConfig[layout].desktop
   );
   const bookerLayouts = profileBookerLayouts || defaultBookerLayoutSettings;
+  const supportsFullscreenMobileLayout = _layout === "week_view" || _layout === "column_view";
   const defaultLayout = isEmbed
     ? validateLayout(embedUiConfig.layout) || bookerLayouts.defaultLayout
     : bookerLayouts.defaultLayout;
 
   useEffect(() => {
-    if (isMobile && layout !== "mobile") {
+    if (isMobile && !supportsFullscreenMobileLayout && layout !== "mobile") {
       setLayout("mobile");
-    } else if (!isMobile && layout === "mobile") {
+    } else if ((!isMobile || supportsFullscreenMobileLayout) && layout === "mobile") {
       setLayout(defaultLayout);
     }
-  }, [isMobile, setLayout, layout, defaultLayout]);
+  }, [defaultLayout, isMobile, layout, setLayout, supportsFullscreenMobileLayout]);
   //setting layout from query param
   useEffect(() => {
     const layout = getQueryParam("layout") as BookerLayouts;

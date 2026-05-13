@@ -146,6 +146,7 @@ export function AvailableCellsForDay({
           topOffsetMinutes={slot.topOffsetMinutes}
           durationMinutes={dayjs(slot.slot.end).diff(dayjs(slot.slot.start), "minutes")}
           resource={resource}
+          attendees={slot.slot.attendees}
         />
       ))}
     </>
@@ -158,9 +159,10 @@ type CellProps = {
   timeSlot: Dayjs;
   durationMinutes?: number;
   resource?: CalendarResource;
+  attendees?: number;
 };
 
-function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resource }: CellProps) {
+function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resource, attendees }: CellProps) {
   const { timeFormat } = useTimePreferences();
 
   const {
@@ -184,6 +186,13 @@ function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resourc
   const selectionKey = `${resource?.id ?? ""}|${timeSlot.toISOString()}`;
   const isSelected = selectedCellKeys.includes(selectionKey);
   const cellDuration = durationMinutes ?? hoverEventDuration ?? 0;
+  const totalSeats = resource?.seatsPerTimeSlot ?? null;
+  const hasSeatCapacity = !!totalSeats && totalSeats > 0;
+  const bookedSeats = attendees ?? 0;
+  const availableSeats = hasSeatCapacity ? Math.max(totalSeats - bookedSeats, 0) : null;
+  const occupancyRatio = hasSeatCapacity ? bookedSeats / totalSeats : 0;
+  const occupancyColorClass =
+    occupancyRatio >= 0.83 ? "bg-rose-600" : occupancyRatio >= 0.5 ? "bg-yellow-500" : "bg-emerald-400";
 
   return (
     <div
@@ -233,7 +242,22 @@ function Cell({ isDisabled, topOffsetMinutes, timeSlot, durationMinutes, resourc
             // multiple events are stacked next to each other. We might need to add this back later.
             width: "calc(100% - 2px)",
           }}>
-          <div className="text-ellipsis leading-0">{timeSlot.format(timeFormat)}</div>
+          <div className="flex w-full items-center justify-between gap-2">
+            <span className="text-ellipsis leading-0">{timeSlot.format(timeFormat)}</span>
+            {hasSeatCapacity && (
+              <span className="shrink-0 text-[10px] leading-none">{`${availableSeats}/${totalSeats}`}</span>
+            )}
+          </div>
+        </div>
+      )}
+      {hasSeatCapacity && cellDuration !== 0 && (
+        <div
+          className="text-emphasis absolute bottom-[2px] left-1/2 z-[90] flex -translate-x-1/2 items-center gap-1 rounded-sm px-1 py-0.5 text-[10px] leading-none"
+          style={{
+            bottom: "2px",
+          }}>
+          <span className={classNames("inline-block h-1.5 w-1.5 rounded-full", occupancyColorClass)} />
+          <span>{`${availableSeats}/${totalSeats}`}</span>
         </div>
       )}
     </div>

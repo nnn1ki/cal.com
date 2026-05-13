@@ -5,6 +5,8 @@ import type { GetBookingType } from "../lib/get-booking";
 
 export type Timezone = (typeof IntlSupportedTimeZones)[number];
 export type BookableResource = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType"> & {
+  seatsPerTimeSlot?: EventType["seatsPerTimeSlot"];
+  seatsShowAvailabilityCount?: EventType["seatsShowAvailabilityCount"];
   bookableResourceId?: number;
   eventTypeId?: number;
   eventTypeSlug?: string;

@@ -9,6 +9,8 @@ export type CalendarResource = {
   slug: string;
   title: string;
   length?: number | null;
+  seatsPerTimeSlot?: number | null;
+  seatsShowAvailabilityCount?: boolean | null;
 };
 
 export type OutOfOfficeRenderProps = {
@@ -77,6 +79,8 @@ export type CalendarPrivateActions = {
 };
 type TimeRangeExtended = TimeRange & {
   away?: boolean;
+  attendees?: number;
+  bookingUid?: string;
   fromUser?: IFromUser;
   toUser?: IToUser;
   reason?: string;

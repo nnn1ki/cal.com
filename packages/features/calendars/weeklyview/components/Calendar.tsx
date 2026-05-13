@@ -47,6 +47,10 @@ function CalendarInner(props: CalendarComponentProps) {
   const days = useMemo(() => getDaysBetweenDates(startDate, endDate), [startDate, endDate]);
   const calendarDay = useMemo(() => dayjs(startDate), [startDate]);
   const columns = calendarMode === "resource" ? resources : days;
+  const horizontalContentWidth = useMemo(() => {
+    const columnWidth = calendarMode === "resource" ? 220 : 180;
+    return `${64 + Math.max(columns.length, 1) * columnWidth}px`;
+  }, [calendarMode, columns.length]);
 
   const hours = useMemo(
     () => getHoursToDisplay(startHour || 0, endHour || 23, timezone),
@@ -56,23 +60,23 @@ function CalendarInner(props: CalendarComponentProps) {
   const hourSize = 58;
 
   return (
-    <MobileNotSupported>
+    <div
+      className={classNames("scheduler-wrapper flex h-full w-full flex-col")}
+      style={
+        {
+          "--one-minute-height": `calc(${hourSize}px/60)`,
+          "--gridDefaultSize": `${hourSize}px`,
+        } as React.CSSProperties // This can't live in the css file because it's a dynamic value and css variable gets super
+      }>
+      {hideHeader !== true && <SchedulerHeading />}
+      {props.isPending && <Spinner />}
       <div
-        className={classNames("scheduler-wrapper flex h-full w-full flex-col")}
-        style={
-          {
-            "--one-minute-height": `calc(${hourSize}px/60)`,
-            "--gridDefaultSize": `${hourSize}px`,
-          } as React.CSSProperties // This can't live in the css file because it's a dynamic value and css variable gets super
-        }>
-        {hideHeader !== true && <SchedulerHeading />}
-        {props.isPending && <Spinner />}
-        <div
-          ref={container}
-          className="bg-default dark:bg-cal-muted relative isolate flex h-full flex-auto flex-col">
+        ref={container}
+        className="bg-default dark:bg-cal-muted relative isolate flex h-full flex-auto flex-col overflow-hidden">
+        <div className="no-scrollbar flex-1 overflow-x-auto overflow-y-hidden">
           <div
-            style={{ width: "165%" }}
-            className="flex max-w-full flex-none flex-col sm:max-w-none md:max-w-full">
+            style={{ minWidth: horizontalContentWidth }}
+            className="flex h-full w-max flex-none flex-col">
             <DateValues
               containerNavRef={containerNav}
               days={days}
@@ -194,7 +198,7 @@ function CalendarInner(props: CalendarComponentProps) {
           </div>
         </div>
       </div>
-    </MobileNotSupported>
+    </div>
   );
 }
 
@@ -218,16 +222,3 @@ export function Calendar(props: CalendarComponentProps) {
     </CalendarStoreContext.Provider>
   );
 }
-
-/** @todo Will be removed once we have mobile support */
-const MobileNotSupported = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <>
-      <div className="flex h-full flex-col items-center justify-center sm:hidden">
-        <h1 className="text-2xl font-bold">Mobile not supported yet </h1>
-        <p className="text-subtle">Please use a desktop browser to view this page</p>
-      </div>
-      <div className="hidden h-full sm:block">{children}</div>
-    </>
-  );
-};

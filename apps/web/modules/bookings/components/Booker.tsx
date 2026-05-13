@@ -26,8 +26,10 @@ import {
   PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM,
 } from "@calcom/lib/constants";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import classNames from "@calcom/ui/classNames";
+import { Button } from "@calcom/ui/components/button";
 import { DialogContent } from "@calcom/ui/components/dialog";
 import { UnpublishedEntity } from "@calcom/ui/components/unpublished-entity";
 import TurnstileCaptcha from "@calcom/web/modules/auth/components/Turnstile";
@@ -52,9 +54,11 @@ import { InstantBooking } from "./InstantBooking";
 import { LargeCalendar } from "./LargeCalendar";
 import { OverlayCalendar } from "./OverlayCalendar/OverlayCalendar";
 import { RedirectToInstantMeetingModal } from "./RedirectToInstantMeetingModal";
+import { ResourceColumnsView } from "./ResourceColumnsView";
 import { SlotSelectionModalHeader } from "./SlotSelectionModalHeader";
 import { NotFound } from "./Unavailable";
 import { VerifyCodeDialog } from "./VerifyCodeDialog";
+import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
 
 const BookerComponent = ({
   username,
@@ -99,6 +103,8 @@ const BookerComponent = ({
 }: BookerProps & WrappedBookerProps): JSX.Element | null => {
   const searchParams = useCompatSearchParams();
   const isPlatformBookerEmbed = useIsPlatformBookerEmbed();
+  const { t, i18n } = useLocale();
+  const { timeFormat, timezone } = useBookerTime();
   const [bookerState, setBookerState] = useBookerStoreContext(
     (state) => [state.state, state.setState],
     shallow
@@ -156,7 +162,7 @@ const BookerComponent = ({
   const nextSlots =
     Math.abs(dayjs(selectedDate).diff(availableSlots[availableSlots.length - 1], "day")) + addonDays;
 
-  const animationScope = useBookerResizeAnimation(layout, bookerState);
+  const animationScope = useBookerResizeAnimation(layout, bookerState, isMobile);
 
   const timeslotsRef = useRef<HTMLDivElement>(null);
   const isQuickAvailabilityCheckFeatureEnabled = useIsQuickAvailabilityCheckFeatureEnabled();
@@ -172,7 +178,7 @@ const BookerComponent = ({
     expiryTime,
     instantVideoMeetingUrl,
     instantConnectCooldownMs,
-    selectedBookingEntries,
+    selectedBookingEntries = [],
   } = bookings;
 
   const watchedCfToken = bookingForm.watch("cfToken");
@@ -193,6 +199,44 @@ const BookerComponent = ({
     setSelectedDatesAndTimes({});
     setSelectedTimeslot(null);
   }, [setSelectedDatesAndTimes, setSelectedTimeslot]);
+  const isResourceSelectionLayout =
+    !!allEventType?.length && (layout === BookerLayouts.WEEK_VIEW || layout === BookerLayouts.COLUMN_VIEW);
+  const hasResourceSelection = isResourceSelectionLayout && selectedBookingEntries.length > 0;
+
+  const handleBookingFormCancel = useCallback(() => {
+    if (hasResourceSelection) {
+      setBookerState("selecting_time");
+      return;
+    }
+
+    clearSelectedBookingState();
+    if (PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM) {
+      schedule?.invalidate();
+    }
+    if (seatedEventData.bookingUid) {
+      setSeatedEventData({
+        ...seatedEventData,
+        bookingUid: undefined,
+        attendees: undefined,
+      });
+    }
+  }, [
+    clearSelectedBookingState,
+    hasResourceSelection,
+    schedule,
+    seatedEventData,
+    setBookerState,
+    setSeatedEventData,
+  ]);
+
+  const handleConfirmWeekViewSelection = useCallback(() => {
+    if (!selectedBookingEntries.length) {
+      return;
+    }
+
+    setSelectedTimeslot(selectedBookingEntries[0]?.start ?? null);
+    setBookerState("booking");
+  }, [selectedBookingEntries, setBookerState, setSelectedTimeslot]);
 
   const scrollToTimeSlots = () => {
     // Don't scroll if slots view on small screen is enabled
@@ -249,6 +293,9 @@ const BookerComponent = ({
       nextBookerState = "loading";
     } else if (!selectedDate) {
       nextBookerState = "selecting_date";
+    } else if (isResourceSelectionLayout) {
+      nextBookerState =
+        selectedBookingEntries.length > 0 && bookerState === "booking" ? "booking" : "selecting_time";
     } else if (!selectedTimeslot) {
       nextBookerState = "selecting_time";
     } else {
@@ -269,7 +316,14 @@ const BookerComponent = ({
     skipConfirmStep,
     layout,
     isInstantMeeting,
+    isResourceSelectionLayout,
+    selectedBookingEntries.length,
   ]);
+
+  const showLegacyAvailableTimeSlots =
+    !(slotsViewOnSmallScreen && isMobile) &&
+    ((layout === BookerLayouts.MONTH_VIEW && bookerState === "selecting_time") ||
+      (layout === BookerLayouts.COLUMN_VIEW && !isResourceSelectionLayout));
 
   const unavailableTimeSlots = isQuickAvailabilityCheckFeatureEnabled
     ? allSelectedTimeslots.filter((slot) => {
@@ -302,23 +356,9 @@ const BookerComponent = ({
     return (
       <BookEventForm
         key={key}
-        timeslot={selectedTimeslot}
+        timeslot={selectedTimeslot ?? selectedBookingEntries[0]?.start ?? null}
         shouldRenderCaptcha={shouldRenderCaptcha}
-        onCancel={() => {
-          clearSelectedBookingState();
-          // Temporarily allow disabling it, till we are sure that it doesn't cause any significant load on the system
-          if (PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM) {
-            // Ensures that user has latest available slots when they want to re-choose from the slots
-            schedule?.invalidate();
-          }
-          if (seatedEventData.bookingUid) {
-            setSeatedEventData({
-              ...seatedEventData,
-              bookingUid: undefined,
-              attendees: undefined,
-            });
-          }
-        }}
+        onCancel={handleBookingFormCancel}
         onSubmit={() => (renderConfirmNotVerifyEmailButtonCond ? handleBookEvent() : handleVerifyEmail())}
         errorRef={bookerFormErrorRef}
         errors={{ ...formErrors, ...errors }}
@@ -368,12 +408,51 @@ const BookerComponent = ({
     setSeatedEventData,
     setSelectedTimeslot,
     setSelectedDatesAndTimes,
-    clearSelectedBookingState,
+    handleBookingFormCancel,
     isPlatform,
     shouldRenderCaptcha,
     isVerificationCodeSending,
     unavailableTimeSlots,
+    selectedBookingEntries,
   ]);
+
+  const resourceSelectionCart =
+    hasResourceSelection && bookerState !== "booking" ? (
+      <div className="border-subtle bg-default border-t px-4 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-emphasis">
+              {t("number_selected", { count: selectedBookingEntries.length })}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedBookingEntries.slice(0, 3).map((entry) => (
+                <div
+                  key={`${entry.bookableResourceId ?? entry.eventTypeId}-${entry.start}`}
+                  className="bg-subtle text-default rounded-md px-3 py-2 text-xs">
+                  <span className="font-medium">{entry.title}</span>
+                  <span className="text-muted ml-2">
+                    {dayjs(entry.start).tz(timezone).locale(i18n.language).format(`D MMM, ${timeFormat}`)}
+                  </span>
+                </div>
+              ))}
+              {selectedBookingEntries.length > 3 && (
+                <div className="bg-subtle text-muted rounded-md px-3 py-2 text-xs">
+                  +{selectedBookingEntries.length - 3}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button color="secondary" onClick={clearSelectedBookingState} type="button">
+              {t("clear")}
+            </Button>
+            <Button color="primary" onClick={handleConfirmWeekViewSelection} type="button">
+              {t("confirm")}
+            </Button>
+          </div>
+        </div>
+      </div>
+    ) : null;
 
   /**
    * Unpublished organization handling - Below
@@ -411,7 +490,7 @@ const BookerComponent = ({
           ref={animationScope}
           data-testid="booker-container"
           className={classNames(
-            ...getBookerSizeClassNames(layout, bookerState, hideEventTypeDetails),
+            ...getBookerSizeClassNames(layout, bookerState, hideEventTypeDetails, isMobile),
             `bg-default dark:bg-cal-muted grid max-w-full items-start dark:scheme-dark sm:transition-[width] sm:duration-300 sm:motion-reduce:transition-none md:flex-row`,
             // We remove border only when the content covers entire viewport. Because in embed, it can almost never be the case that it covers entire viewport, we show the border there
             (layout === BookerLayouts.MONTH_VIEW || isEmbed) && "border-subtle rounded-md",
@@ -547,30 +626,45 @@ const BookerComponent = ({
               key="enable-calendar"
               area="main"
               visible={layout === BookerLayouts.WEEK_VIEW}
-              className="border-subtle sticky top-0 -ml-px h-full md:border-l"
+              className="border-subtle -ml-px flex h-full flex-col md:sticky md:top-0 md:border-l"
               {...fadeInLeft}>
-              <LargeCalendar
-                extraDays={extraDays}
-                schedule={schedule.data}
-                isLoading={schedule.isPending}
-                event={event}
-                allEventType={allEventType}
-              />
+              <div className="min-h-0 flex-1">
+                <LargeCalendar
+                  extraDays={extraDays}
+                  schedule={schedule.data}
+                  isLoading={schedule.isPending}
+                  event={event}
+                  allEventType={allEventType}
+                />
+              </div>
+              {resourceSelectionCart}
+            </BookerSection>
+
+            <BookerSection
+              key="resource-columns"
+              area="main"
+              visible={layout === BookerLayouts.COLUMN_VIEW && isResourceSelectionLayout}
+              className="border-subtle -ml-px flex h-full flex-col md:sticky md:top-0 md:border-l"
+              {...fadeInLeft}>
+              <div className="min-h-0 flex-1">
+                <ResourceColumnsView
+                  isLoading={schedule.isPending}
+                  event={event}
+                  allEventType={allEventType}
+                />
+              </div>
+              {resourceSelectionCart}
             </BookerSection>
 
             <BookerSection
               key="timeslots"
               area={{ default: "main", month_view: "timeslots" }}
-              visible={
-                !(slotsViewOnSmallScreen && isMobile) &&
-                ((layout !== BookerLayouts.WEEK_VIEW && bookerState === "selecting_time") ||
-                  layout === BookerLayouts.COLUMN_VIEW)
-              }
+              visible={showLegacyAvailableTimeSlots}
               className={classNames(
                 "border-subtle rtl:border-default flex h-full w-full flex-col overflow-x-auto px-5 py-3 pb-0 rtl:border-r ltr:md:border-l",
                 layout === BookerLayouts.MONTH_VIEW &&
                   "h-full overflow-hidden md:w-(--booker-timeslots-width)",
-                layout !== BookerLayouts.MONTH_VIEW && "sticky top-0"
+                layout !== BookerLayouts.MONTH_VIEW && "md:sticky md:top-0"
               )}
               ref={timeslotsRef}
               {...fadeInLeft}>
@@ -668,7 +762,7 @@ const BookerComponent = ({
         )}
       </>
       <BookFormAsModal
-        onCancel={clearSelectedBookingState}
+        onCancel={handleBookingFormCancel}
         visible={bookerState === "booking" && shouldShowFormInDialog}
         selectedBookingEntries={selectedBookingEntries}>
         {EventBooker}

@@ -126,7 +126,8 @@ export const resizeAnimationConfig: ResizeAnimationConfig = {
 export const getBookerSizeClassNames = (
   layout: BookerLayout,
   bookerState: BookerState,
-  hideEventTypeDetails = false
+  hideEventTypeDetails = false,
+  isMobile = false
 ) => {
   const getBookerMetaClass = (className: string) => {
     if (hideEventTypeDetails) {
@@ -155,6 +156,7 @@ export const getBookerSizeClassNames = (
       `[--booker-main-width:480px] [--booker-meta-width:340px] ${getBookerMetaClass(
         "lg:[--booker-meta-width:424px]"
       )}`,
+    isMobile && layout !== BookerLayouts.MONTH_VIEW && "[--booker-main-width:100%] [--booker-meta-width:100%]",
   ];
 };
 
@@ -163,13 +165,28 @@ export const getBookerSizeClassNames = (
  * Based on that ref this hook animates the size of the booker element with framer motion.
  * It also takes into account the prefers-reduced-motion setting, to not animate when that's set.
  */
-export const useBookerResizeAnimation = (layout: BookerLayout, state: BookerState) => {
+export const useBookerResizeAnimation = (layout: BookerLayout, state: BookerState, isMobile = false) => {
   const prefersReducedMotion = useReducedMotion();
   const [animationScope, animate] = useAnimate();
   const isEmbed = typeof window !== "undefined" && window?.isEmbed?.();
   ``;
   useEffect(() => {
-    const animationConfig = resizeAnimationConfig[layout][state] || resizeAnimationConfig[layout].default;
+    const mobileFullscreenLayout =
+      isMobile && (layout === BookerLayouts.WEEK_VIEW || layout === BookerLayouts.COLUMN_VIEW);
+    const animationConfig = mobileFullscreenLayout
+      ? {
+          width: "100%",
+          minHeight: "0px",
+          height: "auto",
+          gridTemplateAreas: `
+            "header"
+            "meta"
+            "main"
+          `,
+          gridTemplateColumns: "100%",
+          gridTemplateRows: "auto auto 1fr",
+        }
+      : resizeAnimationConfig[layout][state] || resizeAnimationConfig[layout].default;
 
     if (!animationScope.current) return;
 
@@ -189,7 +206,7 @@ export const useBookerResizeAnimation = (layout: BookerLayout, state: BookerStat
     };
 
     // In this cases we don't animate the booker at all.
-    if (prefersReducedMotion || layout === "mobile" || isEmbed) {
+    if (prefersReducedMotion || layout === "mobile" || isEmbed || mobileFullscreenLayout) {
       const styles = { ...nonAnimatedProperties, ...animatedProperties };
       Object.keys(styles).forEach((property) => {
         if (property === "height") {
@@ -211,7 +228,7 @@ export const useBookerResizeAnimation = (layout: BookerLayout, state: BookerStat
         ease: cubicBezier(0.4, 0, 0.2, 1),
       });
     }
-  }, [animate, isEmbed, animationScope, layout, prefersReducedMotion, state]);
+  }, [animate, isEmbed, animationScope, isMobile, layout, prefersReducedMotion, state]);
 
   return animationScope;
 };
