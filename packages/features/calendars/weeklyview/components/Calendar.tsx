@@ -42,6 +42,7 @@ function CalendarInner(props: CalendarComponentProps) {
   const borderColor = useCalendarStore((state) => state.borderColor ?? "default");
   const scrollToCurrentTime = useCalendarStore((state) => state.scrollToCurrentTime ?? true);
   const updateCurrentTimeOnFocus = useCalendarStore((state) => state.updateCurrentTimeOnFocus ?? false);
+  const allowVerticalScroll = useCalendarStore((state) => state.allowVerticalScroll ?? false);
   const renderOutOfOffice = useCalendarStore((state) => state.renderOutOfOffice);
 
   const days = useMemo(() => getDaysBetweenDates(startDate, endDate), [startDate, endDate]);
@@ -73,7 +74,11 @@ function CalendarInner(props: CalendarComponentProps) {
       <div
         ref={container}
         className="bg-default dark:bg-cal-muted relative isolate flex h-full flex-auto flex-col overflow-hidden">
-        <div className="no-scrollbar flex-1 overflow-x-auto overflow-y-hidden">
+        <div
+          className={classNames(
+            "no-scrollbar flex-1 overflow-x-auto",
+            allowVerticalScroll ? "overflow-y-auto" : "overflow-y-hidden"
+          )}>
           <div
             style={{ minWidth: horizontalContentWidth }}
             className="flex h-full w-max flex-none flex-col">

@@ -132,7 +132,28 @@ vi.mock("@calcom/prisma/zod-utils", async (importOriginal) => {
 });
 
 const createMockStore = (isInstantMeeting: boolean) => {
-  const state = {
+  const state: {
+    eventSlug: string;
+    eventId: number;
+    isInstantMeeting: boolean;
+    username: string;
+    timezone: string;
+    org: null;
+    crmOwnerRecordType: null;
+    crmAppSlug: null;
+    crmRecordId: null;
+    rescheduleUid: null;
+    rescheduledBy: null;
+    bookingData: null;
+    selectedTimeslot: string | null;
+    selectedDatesAndTimes: { [key: string]: { [key: string]: string[] } } | null;
+    selectedDuration: null;
+    verificationCode: null;
+    setRescheduleUid: ReturnType<typeof vi.fn>;
+    setBookingData: ReturnType<typeof vi.fn>;
+    setSelectedDatesAndTimes: ReturnType<typeof vi.fn>;
+    setFormValues: ReturnType<typeof vi.fn>;
+  } = {
     eventSlug: "test-event",
     eventId: 1,
     isInstantMeeting,

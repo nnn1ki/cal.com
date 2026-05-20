@@ -1,20 +1,14 @@
 "use client";
 
 import dayjs from "@calcom/dayjs";
-import { useBookingLocation } from "@calcom/features/bookings/hooks";
 import { shouldShowFieldInCustomResponses } from "@calcom/lib/bookings/SystemField";
 import { formatPrice } from "@calcom/lib/currencyConversions";
-import { formatToLocalizedTimezone } from "@calcom/lib/dayjs";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import { getUserAvatarUrl } from "@calcom/lib/getAvatarUrl";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { getEveryFreqFor } from "@calcom/lib/recurringStrings";
 import { BookingStatus } from "@calcom/prisma/enums";
-import {
-  bookingMetadataSchema,
-  EventTypeMetaDataSchema,
-  eventTypeBookingFields,
-} from "@calcom/prisma/zod-utils";
+import { EventTypeMetaDataSchema, eventTypeBookingFields } from "@calcom/prisma/zod-utils";
 import { trpc } from "@calcom/trpc/react";
 import type { RecurringEvent } from "@calcom/types/Calendar";
 import classNames from "@calcom/ui/classNames";
@@ -36,7 +30,6 @@ import { BookingHistory } from "@calcom/web/modules/booking-audit/components/Boo
 import assignmentReasonBadgeTitleMap from "@lib/booking/assignmentReasonBadgeTitleMap";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { z } from "zod";
 import { AcceptBookingButton } from "../../../components/booking/AcceptBookingButton";
 import { BookingActionsDropdown } from "../../../components/booking/actions/BookingActionsDropdown";
 import { BookingActionsStoreProvider } from "../../../components/booking/actions/BookingActionsStoreProvider";
@@ -50,8 +43,6 @@ import {
   createBookingSheetKeydownHandler,
 } from "../lib/bookingSheetKeyboardHandler";
 import { JoinMeetingButton } from "./JoinMeetingButton";
-
-type BookingMetaData = z.infer<typeof bookingMetadataSchema>;
 
 interface BookingDetailsSheetProps {
   userTimeZone?: string;
@@ -253,11 +244,6 @@ function BookingDetailsSheetInner({
 
   const isPending = booking.status === BookingStatus.PENDING;
 
-  const parsedMetadata = bookingMetadataSchema.safeParse(
-    booking.metadata ?? null
-  );
-  const bookingMetadata = parsedMetadata.success ? parsedMetadata.data : null;
-
   const recurringInfo =
     booking.recurringEventId && booking.eventType?.recurringEvent
       ? {
@@ -267,6 +253,10 @@ function BookingDetailsSheetInner({
       : null;
 
   const responses = (booking.responses ?? {}) as Record<string, unknown>;
+  const primaryAttendee = booking.attendees[0];
+  const attendeeDisplayName = primaryAttendee
+    ? primaryAttendee.name || primaryAttendee.email?.split("@")[0] || primaryAttendee.email || t("booking").toLowerCase()
+    : t("booking").toLowerCase();
 
   const reason =
     booking.assignmentReasonSortedByCreatedAt?.[booking.assignmentReasonSortedByCreatedAt.length - 1];
@@ -366,7 +356,7 @@ function BookingDetailsSheetInner({
             <div className="flex flex-col gap-1">
               <SheetTitle className="flex items-center gap-3 font-semibold text-emphasis text-xl">
                 <div className="w-0.5 shrink-0 self-stretch rounded-lg bg-emphasis"></div>
-                <span data-testid="booking-sheet-title">{booking.title}</span>
+                <span data-testid="booking-sheet-title">{`${booking.eventType?.title ?? booking.title} бронь ${attendeeDisplayName}`}</span>
               </SheetTitle>
             </div>
 
@@ -401,8 +391,6 @@ function BookingDetailsSheetInner({
                 <CancelledBookingInfo booking={booking} />
 
                 <WhoSection booking={booking} />
-
-                <WhereSection booking={booking} meta={bookingMetadata} />
 
                 <RecurringInfoSection recurringInfo={recurringInfo} />
 
@@ -546,20 +534,14 @@ function DisplayTimestamp({
   endTime: Date | dayjs.Dayjs;
   timeZone?: string;
 }) {
-  const {
-    i18n: { language },
-  } = useLocale();
   const start = startTime instanceof Date ? dayjs(startTime).tz(timeZone) : startTime;
   const end = endTime instanceof Date ? dayjs(endTime).tz(timeZone) : endTime;
-  const localizedTimezone = timeZone
-    ? (formatToLocalizedTimezone(start, language, timeZone) ?? timeZone)
-    : start.format("Z");
 
   return (
     <>
       <span>{start.format("dddd, MMMM D, YYYY")}</span>
       <span>
-        {start.format("h:mma")} - {end.format("h:mma")} ({localizedTimezone})
+        {start.format("h:mma")} - {end.format("h:mma")}
       </span>
     </>
   );
@@ -567,43 +549,13 @@ function DisplayTimestamp({
 
 function WhoSection({ booking }: { booking: BookingOutput }) {
   const { t } = useLocale();
+  if (booking.attendees.length === 0) {
+    return null;
+  }
+
   return (
     <Section title={t("who")}>
       <div className="mt-2 flex flex-col gap-3">
-        {booking.user && (
-          <div className="flex items-center gap-4">
-            <Avatar
-              size="md"
-              imageSrc={
-                booking.user.avatarUrl
-                  ? getUserAvatarUrl(booking.user)
-                  : getPlaceholderAvatar(
-                      null,
-                      booking.user.name || booking.user.email
-                    )
-              }
-              alt={booking.user.name || booking.user.email || ""}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="truncate text-emphasis text-sm leading-[1.2]">
-                  {booking.eventType?.hideOrganizerEmail
-                    ? booking.user.name || t("organizer")
-                    : booking.user.name || booking.user.email}
-                </p>
-                <Badge variant="purple" size="sm" className="capitalize">
-                  {t("host")}
-                </Badge>
-              </div>
-              {!booking.eventType?.hideOrganizerEmail && (
-                <p className="truncate text-default text-sm leading-[1.2]">
-                  {booking.user.email}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
         {booking.attendees.map((attendee, idx) => {
           const name =
             attendee.user?.name ||
@@ -631,67 +583,6 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
             </div>
           );
         })}
-      </div>
-    </Section>
-  );
-}
-
-function WhereSection({
-  booking,
-  meta,
-}: {
-  booking: BookingOutput;
-  meta: BookingMetaData | null;
-}) {
-  const { t } = useLocale();
-
-  const { locationToDisplay, provider, isLocationURL } = useBookingLocation({
-    location: booking.location,
-    videoCallUrl: meta?.videoCallUrl,
-    t,
-    bookingStatus: booking.status,
-  });
-
-  if (booking.rescheduled) {
-    return null;
-  }
-
-  if (!locationToDisplay) {
-    return null;
-  }
-
-  if (!isLocationURL) {
-    return (
-      <Section title={t("where")}>
-        <p className="text-default text-sm">{locationToDisplay}</p>
-      </Section>
-    );
-  }
-
-  return (
-    <Section title={t("where")}>
-      <div className="flex items-center gap-2 text-sm">
-        {provider?.iconUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={provider.iconUrl}
-            className="h-4 w-4 shrink-0 rounded-sm"
-            alt={`${provider?.label} logo`}
-          />
-        )}
-        <div className="flex min-w-0 items-baseline gap-1">
-          <span className="shrink-0 font-medium text-emphasis">
-            {provider?.label}:
-          </span>
-          <a
-            href={locationToDisplay}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="truncate text-blue-600 hover:underline"
-          >
-            {locationToDisplay}
-          </a>
-        </div>
       </div>
     </Section>
   );

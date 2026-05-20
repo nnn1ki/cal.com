@@ -8,6 +8,7 @@ export type CalendarResource = {
   id: number;
   slug: string;
   title: string;
+  description?: string | null;
   length?: number | null;
   seatsPerTimeSlot?: number | null;
   seatsShowAvailabilityCount?: boolean | null;
@@ -199,6 +200,11 @@ export type CalendarState = {
    * @default false
    */
   updateCurrentTimeOnFocus?: boolean;
+  /**
+   * Allow vertical scrolling inside the calendar body.
+   * @default false
+   */
+  allowVerticalScroll?: boolean;
   /**
    * Render function for out-of-office slots.
    * Web consumers pass OutOfOfficeInSlots, atoms/platform can pass their own or null.

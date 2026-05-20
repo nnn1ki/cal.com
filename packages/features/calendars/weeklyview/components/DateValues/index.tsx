@@ -5,6 +5,7 @@ import type { CalendarMode, CalendarResource } from "@calcom/features/calendars/
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import classNames from "@calcom/ui/classNames";
 import type React from "react";
+import { ResourceInfoButton } from "../ResourceInfoButton";
 
 type Props = {
   showBorder: boolean;
@@ -51,6 +52,7 @@ export function DateValues({
       ? resources.map((resource) => ({
           key: `resource-${resource.id}`,
           label: resource.title,
+          resource,
           subtitle: resource.length ? `${resource.length}` : undefined,
         }))
       : days.map((day) => {
@@ -88,8 +90,17 @@ export function DateValues({
             key={column.key}
             className="flex flex-1 items-center justify-center px-2 py-3 text-center text-xs font-medium uppercase">
             {calendarMode === "resource" ? (
-              <div className="flex flex-col">
-                <span className="text-emphasis normal-case">{column.label}</span>
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-emphasis normal-case">{column.label}</span>
+                  {"resource" in column && column.resource ? (
+                    <ResourceInfoButton
+                      title={column.resource.title}
+                      slug={column.resource.slug}
+                      description={column.resource.description}
+                    />
+                  ) : null}
+                </div>
                 {column.subtitle ? <span className="text-subtle text-[10px]">{column.subtitle}</span> : null}
               </div>
             ) : (

@@ -272,6 +272,7 @@ async function getUserPageProps(context: GetServerSidePropsContext) {
       id: true,
       title: true,
       slug: true,
+      description: true,
       length: true,
       schedulingType: true,
       seatsPerTimeSlot: true,

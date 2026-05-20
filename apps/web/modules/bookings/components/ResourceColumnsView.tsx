@@ -4,6 +4,7 @@ import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerT
 import type { BookableResource } from "@calcom/features/bookings/Booker/types";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { ResourceInfoButton } from "@calcom/features/calendars/weeklyview/components/ResourceInfoButton";
 import { trpc } from "@calcom/trpc/react";
 import classNames from "@calcom/ui/classNames";
 import { useMemo } from "react";
@@ -110,7 +111,14 @@ export const ResourceColumnsView = ({
               className="border-subtle bg-default flex h-full min-h-0 min-w-[220px] flex-col rounded-2xl border shadow-sm">
               <header className="border-subtle flex items-start justify-between border-b px-4 py-4">
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold text-emphasis">{resource.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-sm font-semibold text-emphasis">{resource.title}</h3>
+                    <ResourceInfoButton
+                      title={resource.title}
+                      slug={resource.slug}
+                      description={resource.description}
+                    />
+                  </div>
                   <p className="mt-1 text-xs text-subtle">
                     {selectedSlots.size > 0
                       ? t("number_selected", { count: selectedSlots.size })

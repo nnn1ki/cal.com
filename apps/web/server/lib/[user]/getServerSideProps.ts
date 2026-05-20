@@ -86,12 +86,20 @@ type UserPageProps = {
 const mapEventTypeToBookableResource = (
   eventType: Pick<
     EventType,
-    "id" | "title" | "slug" | "length" | "schedulingType" | "seatsPerTimeSlot" | "seatsShowAvailabilityCount"
+    | "id"
+    | "title"
+    | "slug"
+    | "description"
+    | "length"
+    | "schedulingType"
+    | "seatsPerTimeSlot"
+    | "seatsShowAvailabilityCount"
   >
 ): BookableResource => ({
   id: eventType.id,
   title: eventType.title,
   slug: eventType.slug,
+  description: eventType.description,
   length: eventType.length,
   schedulingType: eventType.schedulingType,
   seatsPerTimeSlot: eventType.seatsPerTimeSlot,

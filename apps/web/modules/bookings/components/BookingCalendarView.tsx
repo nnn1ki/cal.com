@@ -6,6 +6,8 @@ import { Calendar } from "@calcom/features/calendars/weeklyview/components/Calen
 import type { CalendarEvent } from "@calcom/features/calendars/weeklyview/types/events";
 import type { CalendarResource } from "@calcom/features/calendars/weeklyview/types/state";
 import { useGetTheme } from "@calcom/lib/hooks/useTheme";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { trpc } from "@calcom/trpc/react";
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
 import { useEffect, useMemo } from "react";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
@@ -22,11 +24,13 @@ export function BookingCalendarView({
   currentWeekStart,
   onWeekStartChange,
 }: BookingCalendarViewProps) {
+  const { t } = useLocale();
   const setSelectedBookingUid = useBookingDetailsSheetStore((state) => state.setSelectedBookingUid);
   const selectedBookingUid = useBookingDetailsSheetStore((state) => state.selectedBookingUid);
   const { timezone } = useTimePreferences();
   const { resolvedTheme, forcedTheme } = useGetTheme();
   const { bannersHeight } = useBanners();
+  const eventTypesQuery = trpc.viewer.eventTypes.listWithTeam.useQuery();
 
   const startDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
   const endDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
@@ -36,6 +40,16 @@ export function BookingCalendarView({
     onWeekStartChange(currentWeekStart);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const getAttendeeDisplayName = (booking: BookingOutput) => {
+    const attendee = booking.attendees[0];
+    if (!attendee) {
+      return t("booking").toLowerCase();
+    }
+
+    const displayName = attendee.name || attendee.email || attendee.phoneNumber || t("booking").toLowerCase();
+    return attendee.name ? displayName : displayName.split("@")[0];
+  };
 
   const events = useMemo<CalendarEvent[]>(() => {
     const hasDarkTheme = !forcedTheme && resolvedTheme === "dark";
@@ -61,7 +75,7 @@ export function BookingCalendarView({
 
         return {
           id: idx,
-          title: booking.title,
+          title: `${booking.eventType?.title ?? booking.title} бронь ${getAttendeeDisplayName(booking)}`,
           start: new Date(booking.startTime),
           end: new Date(booking.endTime),
           resourceId: booking.eventType?.id,
@@ -72,17 +86,11 @@ export function BookingCalendarView({
           },
         };
       });
-  }, [bookings, currentWeekStart, resolvedTheme, forcedTheme]);
-
-  const eventTypes = useMemo(() => {
-    const types = bookings
-      .map((booking) => booking.eventType)
-      .filter((et): et is NonNullable<typeof et> => et !== null && et !== undefined);
-    // убираем дубликаты по id
-    return Array.from(new Map(types.map((et) => [et.id, et])).values());
-  }, [bookings]);
+  }, [bookings, currentWeekStart, forcedTheme, resolvedTheme, t]);
 
   const resources = useMemo<CalendarResource[]>(() => {
+    const eventTypes = Array.from(new Map((eventTypesQuery.data ?? []).map((eventType) => [eventType.id, eventType])).values());
+
     return eventTypes
       .filter(
         (
@@ -99,7 +107,7 @@ export function BookingCalendarView({
         title: eventType.title,
         length: eventType.length,
       }));
-  }, [eventTypes]);
+  }, [eventTypesQuery.data]);
 
   return (
     <>
@@ -122,6 +130,7 @@ export function BookingCalendarView({
           showBorder={false}
           borderColor="subtle"
           selectedBookingUid={selectedBookingUid}
+          allowVerticalScroll
           onEventClick={(event) => {
             const bookingUid = event.options?.bookingUid;
             if (bookingUid) {

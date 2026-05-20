@@ -1,5 +1,4 @@
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
-import { getFeatureOptInService } from "@calcom/features/di/containers/FeatureOptInService";
 import { getUserFeatureRepository } from "@calcom/features/di/containers/UserFeatureRepository";
 import { PermissionCheckService } from "@calcom/features/pbac/services/permission-check.service";
 import { MembershipRole } from "@calcom/prisma/enums";
@@ -53,17 +52,8 @@ const Page = async ({ params }: PageProps) => {
   // This variable is primarily for UI purposes.
   const canReadOthersBookings = teamIdsWithPermission.length > 0;
 
-  const featureOptInService = getFeatureOptInService();
-
-  const [bookingAuditEnabled, featureStates] = await Promise.all([
-    userFeatureRepository.checkIfUserHasFeature(userId, "booking-audit"),
-    featureOptInService.resolveFeatureStates({
-      userId,
-      featureIds: ["bookings-v3"],
-    }),
-  ]);
-
-  const bookingsV3Enabled = featureStates["bookings-v3"]?.effectiveEnabled ?? false;
+  const bookingAuditEnabled = await userFeatureRepository.checkIfUserHasFeature(userId, "booking-audit");
+  const bookingsV3Enabled = true;
 
   return (
     <ShellMainAppDir

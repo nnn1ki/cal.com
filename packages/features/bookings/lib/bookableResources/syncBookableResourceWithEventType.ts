@@ -2,6 +2,7 @@ import type { BookableResource as BookerBookableResource } from "@calcom/feature
 import type { EventType } from "@calcom/prisma/client";
 
 type SyncableEventType = Pick<EventType, "id" | "title" | "slug" | "length" | "schedulingType"> & {
+  description?: string | null;
   seatsPerTimeSlot?: EventType["seatsPerTimeSlot"];
   seatsShowAvailabilityCount?: EventType["seatsShowAvailabilityCount"];
 };
@@ -64,6 +65,7 @@ const mapToBookableResource = (
   bookableResourceId: resource.id,
   title: resource.title,
   slug: resource.slug,
+  description: eventType.description,
   length: eventType.length,
   schedulingType: eventType.schedulingType,
   seatsPerTimeSlot: eventType.seatsPerTimeSlot,

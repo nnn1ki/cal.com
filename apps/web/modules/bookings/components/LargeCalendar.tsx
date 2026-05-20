@@ -69,6 +69,7 @@ export const LargeCalendar = ({
         id: resource.id,
         slug: resource.slug,
         title: resource.title,
+        description: resource.description,
         length: resource.length,
         seatsPerTimeSlot: resource.seatsPerTimeSlot,
         seatsShowAvailabilityCount: resource.seatsShowAvailabilityCount,

@@ -2,7 +2,7 @@
 
 import { useEmbedNonStylesConfig, useIsEmbed } from "@calcom/embed-core/embed-iframe";
 import useTheme from "@calcom/lib/hooks/useTheme";
-import { BookerLayouts } from "@calcom/prisma/zod-utils";
+import { BookerLayouts, defaultBookerLayoutSettings } from "@calcom/prisma/zod-utils";
 import { UserAvatar } from "@calcom/ui/components/avatar";
 import { Icon } from "@calcom/ui/components/icon";
 import { OrgBanner } from "@calcom/ui/components/organization-banner";
@@ -39,19 +39,18 @@ export function UserPage(props: PageProps) {
   const isEventListEmpty = eventTypes.length === 0 || !eventData;
   const isOrg = !!user?.profile?.organization;
   const pageWidthClass = isEventListEmpty ? "max-w-3xl" : "max-w-[96rem]";
-  const publicUserBookerEventData = eventData
-    ? {
-        ...eventData,
-        profile: {
-          ...eventData.profile,
-          bookerLayouts: {
-            ...eventData.profile.bookerLayouts,
-            enabledLayouts: [BookerLayouts.WEEK_VIEW, BookerLayouts.COLUMN_VIEW],
-            defaultLayout: BookerLayouts.WEEK_VIEW,
-          },
-        },
-      }
-    : eventData;
+  const publicUserBookerEventData = isEventListEmpty ? null : eventData;
+
+  if (publicUserBookerEventData?.profile) {
+    publicUserBookerEventData.profile.bookerLayouts = {
+      ...(publicUserBookerEventData.profile.bookerLayouts ?? defaultBookerLayoutSettings),
+      enabledLayouts: [BookerLayouts.WEEK_VIEW, BookerLayouts.COLUMN_VIEW],
+      defaultLayout: BookerLayouts.WEEK_VIEW,
+    };
+  }
+
+  const bookerEventData = isEventListEmpty ? null : publicUserBookerEventData;
+  const shouldShowEmptyPage = isEventListEmpty || !bookerEventData;
 
   return (
     <>
@@ -113,20 +112,20 @@ export function UserPage(props: PageProps) {
             </div>
           </div>
 
-          {isEventListEmpty ? (
+          {shouldShowEmptyPage ? (
             <EmptyPage name={profile.name || "User"} />
           ) : (
             <BookingPageErrorBoundary>
               <div className="w-full">
                 <Booker
                   username={user.profile.username ?? profile.username ?? ""}
-                  eventSlug={publicUserBookerEventData.slug}
+                  eventSlug={bookerEventData.slug}
                   initialLayout="week_view"
                   allEventType={allEventTypes}
                   hideBranding={false}
-                  eventData={publicUserBookerEventData}
-                  entity={{ ...publicUserBookerEventData.entity, eventTypeId: publicUserBookerEventData.id }}
-                  durationConfig={publicUserBookerEventData.metadata?.multipleDuration}
+                  eventData={bookerEventData}
+                  entity={{ ...bookerEventData.entity, eventTypeId: bookerEventData.id }}
+                  durationConfig={bookerEventData.metadata?.multipleDuration}
                   orgBannerUrl={orgBannerUrl}
                 />
               </div>

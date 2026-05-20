@@ -41,6 +41,7 @@ export const buildBooking = (
     uid,
     userId: null,
     eventTypeId: null,
+    bookableResourceId: null,
     idempotencyKey: null,
     userPrimaryEmail: null,
     title: faker.lorem.sentence(),
