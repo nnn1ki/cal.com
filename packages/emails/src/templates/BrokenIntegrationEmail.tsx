@@ -8,6 +8,7 @@ import type { CalendarEvent, Person } from "@calcom/types/Calendar";
 import { BaseEmailHtml, Info } from "../components";
 import { BaseScheduledEmail } from "./BaseScheduledEmail";
 const BOOKING_PHYSICAL_LOCATION = "г. Иркутск, TODO: укажите адрес";
+const stripBookingTitle = (value: string) => value.replace(/\s+between\s+.*$/i, "").trim();
 
 const BrokenCalendarIntegration = (props: {
   calendar: string;
@@ -27,24 +28,45 @@ const BrokenCalendarIntegration = (props: {
   );
 };
 
-const BrokenVideoBookingSummary = (props: { calEvent: CalendarEvent }) => {
-  const organizerTimeZone = props.calEvent.organizer.timeZone;
-  const formattedDate = dayjs(props.calEvent.startTime)
-    .tz(organizerTimeZone)
-    .locale("ru")
-    .format("D MMMM YYYY");
-  const formattedTime = `${dayjs(props.calEvent.startTime)
-    .tz(organizerTimeZone)
-    .locale("ru")
-    .format("HH:mm")} - ${dayjs(props.calEvent.endTime).tz(organizerTimeZone).locale("ru").format("HH:mm")}`;
+const BrokenVideoBookingSummary = (props: { calEvents: CalendarEvent[] }) => {
+  const organizerTimeZone = props.calEvents[0]?.organizer.timeZone;
+  const groupedByDate = props.calEvents.reduce<Record<string, CalendarEvent[]>>((acc, calEvent) => {
+    const dateKey = dayjs(calEvent.startTime).tz(organizerTimeZone).locale("ru").format("D MMMM YYYY");
+    acc[dateKey] = [...(acc[dateKey] ?? []), calEvent];
+    return acc;
+  }, {});
 
   return (
     <BaseEmailHtml
-      subject={`Бронирование: ${props.calEvent.title}`}
+      subject={
+        props.calEvents.length > 1
+          ? "Сводка бронирований"
+          : `Бронирование: ${stripBookingTitle(props.calEvents[0]?.title ?? "")}`
+      }
       title="Бронирование оформлено"
       subtitle={`Детали записи в ${APP_NAME}`}>
-      <Info label="Что забронировано" description={props.calEvent.title} withSpacer />
-      <Info label="Когда" description={`${formattedDate}, ${formattedTime}`} withSpacer />
+      {Object.entries(groupedByDate).map(([dateLabel, dateEvents], index) => (
+        <div key={dateLabel}>
+          <Info label="Когда забронировано" description={dateLabel} withSpacer={index > 0} />
+          <Info
+            label="Что забронировано"
+            description={dateEvents
+              .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
+              .map((calEvent) => {
+                const formattedTime = `${dayjs(calEvent.startTime)
+                  .tz(organizerTimeZone)
+                  .locale("ru")
+                  .format("HH:mm")} - ${dayjs(calEvent.endTime)
+                  .tz(organizerTimeZone)
+                  .locale("ru")
+                  .format("HH:mm")}`;
+                return `${stripBookingTitle(calEvent.title)} - ${formattedTime}`;
+              })
+              .join("\n")}
+            withSpacer
+          />
+        </div>
+      ))}
       <Info label="Адрес места" description={BOOKING_PHYSICAL_LOCATION} withSpacer />
     </BaseEmailHtml>
   );
@@ -53,6 +75,7 @@ const BrokenVideoBookingSummary = (props: { calEvent: CalendarEvent }) => {
 export const BrokenIntegrationEmail = (
   props: {
     calEvent: CalendarEvent;
+    calEvents?: CalendarEvent[];
     attendee: Person;
     type: "video" | "calendar";
   } & Partial<React.ComponentProps<typeof BaseScheduledEmail>>
@@ -63,7 +86,8 @@ export const BrokenIntegrationEmail = (
   const timeFormat = calEvent.organizer?.timeFormat;
 
   if (type === "video") {
-    return <BrokenVideoBookingSummary calEvent={calEvent} />;
+    const calEvents = "calEvents" in props && props.calEvents?.length ? props.calEvents : [calEvent];
+    return <BrokenVideoBookingSummary calEvents={calEvents} />;
   }
 
   if (type === "calendar") {

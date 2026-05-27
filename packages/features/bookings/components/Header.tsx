@@ -7,7 +7,6 @@ import { useIsEmbed } from "@calcom/embed-core/embed-iframe";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import { useInitializeWeekStart } from "@calcom/features/bookings/hooks/useInitializeWeekStart";
 import { WEBAPP_URL } from "@calcom/lib/constants";
-import { formatDateTime } from "@calcom/lib/dateTimeFormatter";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import { Button } from "@calcom/ui/components/button";
@@ -26,7 +25,6 @@ export function Header({
   nextSlots,
   eventSlug,
   isMyLink,
-  renderOverlay,
   isCalendarView,
 }: {
   extraDays: number;
@@ -35,7 +33,6 @@ export function Header({
   nextSlots: number;
   eventSlug: string;
   isMyLink: boolean;
-  renderOverlay?: () => JSX.Element | null;
   isCalendarView?: boolean;
 }) {
   const { t, i18n } = useLocale();
@@ -94,9 +91,7 @@ export function Header({
               {t("need_help")}
             </Button>
           </Tooltip>
-        ) : (
-          renderOverlay?.()
-        )}
+        ) : null}
         <LayoutToggleWithData
           layout={layout}
           enabledLayouts={enabledLayouts}
@@ -105,26 +100,10 @@ export function Header({
       </div>
     );
   }
-  const endDate = selectedDate.add(layout === BookerLayouts.COLUMN_VIEW ? extraDays : extraDays - 1, "days");
-
-  const isSameMonth = () => {
-    return selectedDate.format("MMM") === endDate.format("MMM");
-  };
-
-  const isSameYear = () => {
-    return selectedDate.format("YYYY") === endDate.format("YYYY");
-  };
-  const formatMonthLabel = (date: Date) =>
-    formatDateTime(date, { locale: i18n.language ?? "en", month: "short" });
   const FormattedSelectedDateRange = () => {
     return (
       <h3 className="min-w-[150px] text-base font-semibold leading-4">
-        {formatMonthLabel(selectedDate.toDate())} {selectedDate.format("D")}
-        {!isSameYear() && <span className="text-subtle">, {selectedDate.format("YYYY")} </span>}-{" "}
-        {!isSameMonth() && formatMonthLabel(endDate.toDate())} {endDate.format("D")},{" "}
-        <span className="text-subtle">
-          {isSameYear() ? selectedDate.format("YYYY") : endDate.format("YYYY")}
-        </span>
+        {selectedDate.locale(i18n.language).format("D MMMM YYYY")}
       </h3>
     );
   };
@@ -164,7 +143,6 @@ export function Header({
         </ButtonGroup>
       </div>
       <div className="ml-auto flex gap-2">
-        {renderOverlay?.()}
         <TimeFormatToggle />
         <LayoutToggleWithData
           layout={layout}

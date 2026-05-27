@@ -9,6 +9,14 @@ import DisabledAppEmail from "./templates/disabled-app-email";
 import SlugReplacementEmail from "./templates/slug-replacement-email";
 import DelegationCredentialDisabledEmail from "./templates/delegation-credential-disabled-email";
 
+const brokenVideoIntegrationQueue = new Map<
+  string,
+  {
+    events: CalendarEvent[];
+    timeout: ReturnType<typeof setTimeout>;
+  }
+>();
+
 const sendEmail = (prepare: () => BaseEmail) => {
   return new Promise((resolve, reject) => {
     try {
@@ -22,7 +30,49 @@ const sendEmail = (prepare: () => BaseEmail) => {
 
 export const sendBrokenIntegrationEmail = async (evt: CalendarEvent, type: "video" | "calendar") => {
   const calendarEvent = formatCalEvent(evt);
-  await sendEmail(() => new BrokenIntegrationEmail(calendarEvent, type));
+
+  if (type !== "video") {
+    await sendEmail(() => new BrokenIntegrationEmail(calendarEvent, type));
+    return;
+  }
+
+  const queueKey = [
+    type,
+    calendarEvent.organizer.email,
+    calendarEvent.attendees.map((attendee) => attendee.email).sort().join(","),
+  ].join("|");
+
+  const queuedEmail = brokenVideoIntegrationQueue.get(queueKey);
+
+  if (queuedEmail) {
+    clearTimeout(queuedEmail.timeout);
+    queuedEmail.events.push(calendarEvent);
+    queuedEmail.timeout = setTimeout(() => {
+      const currentQueue = brokenVideoIntegrationQueue.get(queueKey);
+      if (!currentQueue?.events.length) {
+        brokenVideoIntegrationQueue.delete(queueKey);
+        return;
+      }
+
+      void sendEmail(() => new BrokenIntegrationEmail(currentQueue.events[0], type, currentQueue.events));
+      brokenVideoIntegrationQueue.delete(queueKey);
+    }, 150);
+    return;
+  }
+
+  brokenVideoIntegrationQueue.set(queueKey, {
+    events: [calendarEvent],
+    timeout: setTimeout(() => {
+      const currentQueue = brokenVideoIntegrationQueue.get(queueKey);
+      if (!currentQueue?.events.length) {
+        brokenVideoIntegrationQueue.delete(queueKey);
+        return;
+      }
+
+      void sendEmail(() => new BrokenIntegrationEmail(currentQueue.events[0], type, currentQueue.events));
+      brokenVideoIntegrationQueue.delete(queueKey);
+    }, 150),
+  });
 };
 
 export const sendDisabledAppEmail = async ({

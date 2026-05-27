@@ -12,12 +12,14 @@ import BaseEmail from "./_base-email";
 export default class BrokenIntegrationEmail extends BaseEmail {
   type: "calendar" | "video";
   calEvent: CalendarEvent;
+  calEvents: CalendarEvent[];
   t: TFunction;
 
-  constructor(calEvent: CalendarEvent, type: "calendar" | "video") {
+  constructor(calEvent: CalendarEvent, type: "calendar" | "video", calEvents?: CalendarEvent[]) {
     super();
     this.name = "SEND_BROKEN_INTEGRATION";
     this.calEvent = calEvent;
+    this.calEvents = calEvents?.length ? calEvents : [calEvent];
     this.t = this.calEvent.organizer.language.translate;
     this.type = type;
   }
@@ -26,7 +28,9 @@ export default class BrokenIntegrationEmail extends BaseEmail {
     const toAddresses = [this.calEvent.organizer.email];
     const subject =
       this.type === "video"
-        ? `Бронирование: ${this.calEvent.title}`
+        ? this.calEvents.length > 1
+          ? "Сводка бронирований"
+          : `Бронирование: ${this.calEvent.title.replace(/\s+between\s+.*$/i, "").trim()}`
         : `[Action Required] ${this.t("confirmed_event_type_subject", {
             eventType: this.calEvent.type,
             name: this.calEvent.attendees[0].name,
@@ -39,6 +43,7 @@ export default class BrokenIntegrationEmail extends BaseEmail {
       subject,
       html: await renderEmail("BrokenIntegrationEmail", {
         calEvent: this.calEvent,
+        calEvents: this.calEvents,
         attendee: this.calEvent.organizer,
         type: this.type,
       }),
@@ -53,23 +58,40 @@ export default class BrokenIntegrationEmail extends BaseEmail {
     callToAction = ""
   ): string {
     if (this.type === "video") {
-      const bookingDate = dayjs(this.calEvent.startTime)
-        .tz(this.calEvent.organizer.timeZone)
-        .locale("ru")
-        .format("D MMMM YYYY");
-      const bookingTime = `${dayjs(this.calEvent.startTime)
-        .tz(this.calEvent.organizer.timeZone)
-        .locale("ru")
-        .format("HH:mm")} - ${dayjs(this.calEvent.endTime)
-        .tz(this.calEvent.organizer.timeZone)
-        .locale("ru")
-        .format("HH:mm")}`;
+      const groupedByDate = this.calEvents.reduce<Record<string, CalendarEvent[]>>((acc, calEvent) => {
+        const dateKey = dayjs(calEvent.startTime)
+          .tz(this.calEvent.organizer.timeZone)
+          .locale("ru")
+          .format("D MMMM YYYY");
+        acc[dateKey] = [...(acc[dateKey] ?? []), calEvent];
+        return acc;
+      }, {});
+
+      const bookingSummary = Object.entries(groupedByDate)
+        .map(([dateLabel, dateEvents]) => {
+          const slots = dateEvents
+            .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
+            .map((calEvent) => {
+              const bookingTime = `${dayjs(calEvent.startTime)
+                .tz(this.calEvent.organizer.timeZone)
+                .locale("ru")
+                .format("HH:mm")} - ${dayjs(calEvent.endTime)
+                .tz(this.calEvent.organizer.timeZone)
+                .locale("ru")
+                .format("HH:mm")}`;
+              return `${calEvent.title.replace(/\s+between\s+.*$/i, "").trim()} - ${bookingTime}`;
+            })
+            .join("\n");
+
+          return `Когда забронировано:\n${dateLabel}\nЧто забронировано:\n${slots}`;
+        })
+        .join("\n\n");
 
       return `Бронирование оформлено
 
-Что забронировано: ${this.calEvent.title}
-Когда: ${bookingDate}, ${bookingTime}
-Адрес места: г. Иркутск, TODO: укажите адрес
+${bookingSummary}
+
+Адрес места: г. Иркутск, Литвинова 16, ТЦ Пассаж
 
 ${APP_NAME}`.trim();
     }
