@@ -7,15 +7,17 @@ function generateIdempotencyKey({
   startTime,
   endTime,
   userId,
+  bookableResourceId,
   reassignedById,
 }: {
   startTime: Date | string;
   endTime: Date | string;
   userId?: number;
+  bookableResourceId?: number;
   reassignedById?: number | null;
 }) {
   return uuidv5(
-    `${startTime.valueOf()}.${endTime.valueOf()}.${userId}${reassignedById ? `.${reassignedById}` : ""}`,
+    `${startTime.valueOf()}.${endTime.valueOf()}.${userId}${bookableResourceId ? `.${bookableResourceId}` : ""}${reassignedById ? `.${reassignedById}` : ""}`,
     uuidv5.URL
   );
 }
@@ -30,6 +32,7 @@ export function bookingIdempotencyKeyExtension() {
               startTime: args.data.startTime,
               endTime: args.data.endTime,
               userId: args.data.user?.connect?.id,
+              bookableResourceId: args.data.bookableResource?.connect?.id,
               reassignedById: args.data.reassignById,
             });
             args.data.idempotencyKey = idempotencyKey;

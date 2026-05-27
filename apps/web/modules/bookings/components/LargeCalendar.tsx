@@ -117,7 +117,6 @@ export const LargeCalendar = ({
       return acc;
     }, {});
   }, [eventDuration, resources, scheduleQueries]);
-
   const selectedCellKeys = useMemo(() => {
     if (!selectedDatesAndTimes) return [];
 

@@ -4526,6 +4526,8 @@
   "list_view": "List view",
   "calendar_view": "Calendar view",
   "table_view": "Table view",
+  "view_previous_day": "View previous day",
+  "view_next_day": "View next day",
   "oauth_client": "OAuth Client",
   "actions": "Actions",
   "holidays": "Holidays",

@@ -1,7 +1,8 @@
 import type { TFunction } from "i18next";
 
+import dayjs from "@calcom/dayjs";
 import { getRichDescription } from "@calcom/lib/CalEventParser";
-import { EMAIL_FROM_NAME } from "@calcom/lib/constants";
+import { APP_NAME, EMAIL_FROM_NAME } from "@calcom/lib/constants";
 import { TimeFormat } from "@calcom/lib/timeFormat";
 import type { CalendarEvent } from "@calcom/types/Calendar";
 
@@ -23,15 +24,19 @@ export default class BrokenIntegrationEmail extends BaseEmail {
 
   protected async getNodeMailerPayload(): Promise<Record<string, unknown>> {
     const toAddresses = [this.calEvent.organizer.email];
+    const subject =
+      this.type === "video"
+        ? `Бронирование: ${this.calEvent.title}`
+        : `[Action Required] ${this.t("confirmed_event_type_subject", {
+            eventType: this.calEvent.type,
+            name: this.calEvent.attendees[0].name,
+            date: this.getFormattedDate(),
+          })}`;
 
     return {
       from: `${EMAIL_FROM_NAME} <${this.getMailerOptions().from}>`,
       to: toAddresses.join(","),
-      subject: `[Action Required] ${this.t("confirmed_event_type_subject", {
-        eventType: this.calEvent.type,
-        name: this.calEvent.attendees[0].name,
-        date: this.getFormattedDate(),
-      })}`,
+      subject,
       html: await renderEmail("BrokenIntegrationEmail", {
         calEvent: this.calEvent,
         attendee: this.calEvent.organizer,
@@ -47,6 +52,28 @@ export default class BrokenIntegrationEmail extends BaseEmail {
     extraInfo = "",
     callToAction = ""
   ): string {
+    if (this.type === "video") {
+      const bookingDate = dayjs(this.calEvent.startTime)
+        .tz(this.calEvent.organizer.timeZone)
+        .locale("ru")
+        .format("D MMMM YYYY");
+      const bookingTime = `${dayjs(this.calEvent.startTime)
+        .tz(this.calEvent.organizer.timeZone)
+        .locale("ru")
+        .format("HH:mm")} - ${dayjs(this.calEvent.endTime)
+        .tz(this.calEvent.organizer.timeZone)
+        .locale("ru")
+        .format("HH:mm")}`;
+
+      return `Бронирование оформлено
+
+Что забронировано: ${this.calEvent.title}
+Когда: ${bookingDate}, ${bookingTime}
+Адрес места: г. Иркутск, TODO: укажите адрес
+
+${APP_NAME}`.trim();
+    }
+
     return `
 ${this.t(
   title || this.calEvent.recurringEvent?.count ? "new_event_scheduled_recurring" : "new_event_scheduled"

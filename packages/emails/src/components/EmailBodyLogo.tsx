@@ -1,4 +1,4 @@
-import { WEBAPP_URL } from "@calcom/lib/constants";
+import { LOGO, WEBAPP_URL } from "@calcom/lib/constants";
 
 import RawHtml from "./RawHtml";
 import Row from "./Row";
@@ -6,7 +6,7 @@ import Row from "./Row";
 const CommentIE = ({ html = "" }) => <RawHtml html={`<!--[if mso | IE]>${html}<![endif]-->`} />;
 
 const EmailBodyLogo = () => {
-  const image = `${WEBAPP_URL}/emails/logo.png`;
+  const image = `${WEBAPP_URL}${LOGO}`;
 
   return (
     <>
@@ -45,21 +45,21 @@ const EmailBodyLogo = () => {
                     wordBreak: "break-word",
                   }}>
                   <Row border="0" style={{ borderCollapse: "collapse", borderSpacing: "0px" }}>
-                    <td style={{ width: "89px" }}>
+                    <td style={{ width: "120px" }}>
                       <a href={WEBAPP_URL} target="_blank" rel="noreferrer">
                         <img
-                          height="19"
+                          height="69"
                           src={image}
                           style={{
                             border: "0",
                             display: "block",
                             outline: "none",
                             textDecoration: "none",
-                            height: "19px",
+                            height: "69px",
                             width: "100%",
                             fontSize: "13px",
                           }}
-                          width="89"
+                          width="120"
                           alt=""
                         />
                       </a>

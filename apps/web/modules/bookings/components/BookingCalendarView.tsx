@@ -9,21 +9,16 @@ import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
 import type { BookingOutput } from "../types";
 
 type BookingCalendarViewProps = {
   bookings: BookingOutput[];
-  currentWeekStart: dayjs.Dayjs;
-  onWeekStartChange: (weekStart: dayjs.Dayjs) => void;
+  currentDate: dayjs.Dayjs;
 };
 
-export function BookingCalendarView({
-  bookings,
-  currentWeekStart,
-  onWeekStartChange,
-}: BookingCalendarViewProps) {
+export function BookingCalendarView({ bookings, currentDate }: BookingCalendarViewProps) {
   const { t } = useLocale();
   const setSelectedBookingUid = useBookingDetailsSheetStore((state) => state.setSelectedBookingUid);
   const selectedBookingUid = useBookingDetailsSheetStore((state) => state.selectedBookingUid);
@@ -32,14 +27,8 @@ export function BookingCalendarView({
   const { bannersHeight } = useBanners();
   const eventTypesQuery = trpc.viewer.eventTypes.listWithTeam.useQuery();
 
-  const startDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
-  const endDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
-
-  // Intentionally only runs on mount to trigger the initial currentWeekStart
-  useEffect(() => {
-    onWeekStartChange(currentWeekStart);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const startDate = useMemo(() => currentDate.toDate(), [currentDate]);
+  const endDate = useMemo(() => currentDate.toDate(), [currentDate]);
 
   const getAttendeeDisplayName = (booking: BookingOutput) => {
     const attendee = booking.attendees[0];
@@ -55,13 +44,7 @@ export function BookingCalendarView({
     const hasDarkTheme = !forcedTheme && resolvedTheme === "dark";
 
     return bookings
-      .filter((booking) => {
-        const bookingStart = dayjs(booking.startTime);
-        return (
-          (bookingStart.isAfter(currentWeekStart) || bookingStart.isSame(currentWeekStart)) &&
-          bookingStart.isBefore(currentWeekStart.add(7, "day"))
-        );
-      })
+      .filter((booking) => dayjs(booking.startTime).isSame(currentDate, "day"))
       .sort((a, b) => {
         const startDiff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
         if (startDiff !== 0) return startDiff;
@@ -86,7 +69,7 @@ export function BookingCalendarView({
           },
         };
       });
-  }, [bookings, currentWeekStart, forcedTheme, resolvedTheme, t]);
+  }, [bookings, currentDate, forcedTheme, resolvedTheme, t]);
 
   const resources = useMemo<CalendarResource[]>(() => {
     const eventTypes = Array.from(new Map((eventTypesQuery.data ?? []).map((eventType) => [eventType.id, eventType])).values());

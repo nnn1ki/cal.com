@@ -14,6 +14,8 @@ type Props = {
   containerNavRef: React.RefObject<HTMLDivElement>;
   calendarMode: CalendarMode;
   resources: CalendarResource[];
+  contentWidth: string;
+  scrollLeft: number;
 };
 
 export function DateValues({
@@ -23,6 +25,8 @@ export function DateValues({
   containerNavRef,
   calendarMode,
   resources,
+  contentWidth,
+  scrollLeft,
 }: Props) {
   const { i18n } = useLocale();
   const timezone = useCalendarStore((state) => state.timezone);
@@ -69,11 +73,16 @@ export function DateValues({
     <div
       ref={containerNavRef}
       className={classNames(
-        "bg-default dark:bg-cal-muted top-(--calendar-dates-sticky-offset,0px) z-80 sticky flex-none border-b",
+        "bg-default dark:bg-cal-muted top-(--calendar-dates-sticky-offset,0px) z-80 sticky flex-none overflow-hidden border-b",
         borderColor === "subtle" ? "border-b-subtle" : "border-b-default",
         showBorder && (borderColor === "subtle" ? "border-r-subtle border-r" : "border-r-default border-r")
       )}>
-      <div className="text-subtle -mr-px hidden auto-cols-fr leading-6 sm:flex">
+      <div
+        style={{
+          minWidth: contentWidth,
+          transform: `translateX(-${scrollLeft}px)`,
+        }}
+        className="text-subtle -mr-px hidden w-max auto-cols-fr leading-6 will-change-transform sm:flex">
         <div
           className={classNames(
             "col-end-1 flex w-16 items-center justify-center",

@@ -6,7 +6,7 @@ import {
 } from "@calcom/features/calendars/weeklyview/state/store";
 import classNames from "@calcom/ui/classNames";
 import type React from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@calcom/features/calendars/weeklyview/styles/styles.css";
 import type { CalendarComponentProps } from "@calcom/features/calendars/weeklyview/types/state";
 import { getDaysBetweenDates, getHoursToDisplay } from "@calcom/features/calendars/weeklyview/utils";
@@ -24,7 +24,9 @@ function CalendarInner(props: CalendarComponentProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const containerNav = useRef<HTMLDivElement | null>(null);
   const containerOffset = useRef<HTMLDivElement | null>(null);
+  const horizontalScrollContainer = useRef<HTMLDivElement | null>(null);
   const schedulerGrid = useRef<HTMLOListElement | null>(null);
+  const [headerScrollLeft, setHeaderScrollLeft] = useState(0);
 
   const calendarMode = useCalendarStore((state) => state.calendarMode ?? "date");
   const resources = useCalendarStore((state) => state.resources ?? []);
@@ -60,6 +62,14 @@ function CalendarInner(props: CalendarComponentProps) {
   const numberOfGridStopsPerDay = hours.length * usersCellsStopsPerHour;
   const hourSize = 58;
 
+  const handleHorizontalScroll = useCallback(() => {
+    setHeaderScrollLeft(horizontalScrollContainer.current?.scrollLeft ?? 0);
+  }, []);
+
+  useEffect(() => {
+    handleHorizontalScroll();
+  }, [handleHorizontalScroll, columns.length]);
+
   return (
     <div
       className={classNames("scheduler-wrapper flex h-full w-full flex-col")}
@@ -73,23 +83,30 @@ function CalendarInner(props: CalendarComponentProps) {
       {props.isPending && <Spinner />}
       <div
         ref={container}
-        className="bg-default dark:bg-cal-muted relative isolate flex h-full flex-auto flex-col overflow-hidden">
+        className={classNames(
+          "bg-default dark:bg-cal-muted relative isolate flex h-full flex-auto flex-col",
+          allowVerticalScroll ? "overflow-hidden" : "overflow-visible"
+        )}>
+        <DateValues
+          containerNavRef={containerNav}
+          days={days}
+          showBorder={showBorder}
+          borderColor={borderColor}
+          calendarMode={calendarMode}
+          resources={resources}
+          contentWidth={horizontalContentWidth}
+          scrollLeft={headerScrollLeft}
+        />
         <div
+          ref={horizontalScrollContainer}
+          onScroll={handleHorizontalScroll}
           className={classNames(
             "no-scrollbar flex-1 overflow-x-auto",
-            allowVerticalScroll ? "overflow-y-auto" : "overflow-y-hidden"
+            allowVerticalScroll ? "overflow-y-auto" : "overflow-y-visible"
           )}>
           <div
             style={{ minWidth: horizontalContentWidth }}
             className="flex h-full w-max flex-none flex-col">
-            <DateValues
-              containerNavRef={containerNav}
-              days={days}
-              showBorder={showBorder}
-              borderColor={borderColor}
-              calendarMode={calendarMode}
-              resources={resources}
-            />
             <div className="relative flex flex-auto">
               <CurrentTime
                 timezone={timezone}

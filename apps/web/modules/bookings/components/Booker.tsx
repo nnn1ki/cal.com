@@ -483,7 +483,11 @@ const BookerComponent = ({
           "main",
           "text-default flex min-h-full w-full flex-col items-center",
           layout === BookerLayouts.MONTH_VIEW && !isEmbed && "my-20 ",
-          layout === BookerLayouts.MONTH_VIEW ? "overflow-visible" : "overflow-clip",
+          layout === BookerLayouts.MONTH_VIEW ||
+            layout === BookerLayouts.WEEK_VIEW ||
+            layout === BookerLayouts.COLUMN_VIEW
+            ? "overflow-visible"
+            : "overflow-clip",
           `${customClassNames?.bookerWrapper}`
         )}>
         <div

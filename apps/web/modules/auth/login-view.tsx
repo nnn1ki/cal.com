@@ -202,8 +202,9 @@ export default function Login({
         {/* Main Card */}
         <div className="w-full rounded-xl border border-subtle bg-default p-10 shadow-sm">
           {/* Logo */}
-          <div className="mb-2 text-center">
-            <h1 className="font-cal text-xl font-bold text-emphasis">Cal.com</h1>
+          <div className="mb-2 text-center alling-center">
+            {/* <h1 className="font-cal text-xl font-bold text-emphasis">Location</h1> */}
+            <img src="/location-logo-16-16.svg" alt="Logo" className="w-16 h-16 rounded-full alling-center" />
           </div>
 
           {/* Heading */}

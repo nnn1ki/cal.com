@@ -33,7 +33,6 @@ export function gridCellToDateTime({
   const minutesInSelection = (selectionLength + 1) * 60;
   const minutesPerCell = minutesInSelection / totalGridCells;
   const minutesIntoSelection = minutesPerCell * gridCellIdx;
-
   // Add startHour since we use StartOfDay for day props. This could be improved by changing the getDaysBetweenDates function
   // To handle the startHour+endHour
   const cellDateTime = dayjs(day)
