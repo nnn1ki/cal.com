@@ -9,9 +9,7 @@ import type { z } from "zod";
 
 import { BookerLayoutSelector } from "~/settings/components/BookerLayoutSelector";
 import SectionBottomActions from "@calcom/features/settings/SectionBottomActions";
-import ThemeLabel from "@calcom/features/settings/ThemeLabel";
 import SettingsHeader from "@calcom/features/settings/appDir/SettingsHeader";
-import { APP_NAME } from "@calcom/lib/constants";
 import { DEFAULT_LIGHT_BRAND_COLOR, DEFAULT_DARK_BRAND_COLOR } from "@calcom/lib/constants";
 import { checkWCAGContrastColor } from "@calcom/lib/getBrandColours";
 import useGetBrandingColours from "@calcom/lib/getBrandColours";
@@ -26,8 +24,6 @@ import { Button } from "@calcom/ui/components/button";
 import { SettingsToggle, ColorPicker, Form } from "@calcom/ui/components/form";
 import { showToast } from "@calcom/ui/components/toast";
 import { useCalcomTheme } from "@calcom/ui/styles";
-
-import { UpgradeTeamsBadgeWebWrapper } from "~/billing/components/UpgradeTeamsBadgeWebWrapper";
 
 const useBrandColors = (
   currentTheme: string | null,
@@ -51,7 +47,6 @@ const useBrandColors = (
 
 const AppearanceView = ({
   user,
-  hasPaidPlan,
 }: {
   user: RouterOutputs["viewer"]["me"]["get"];
   hasPaidPlan: boolean;
@@ -65,34 +60,11 @@ const AppearanceView = ({
   const [isCustomBrandColorChecked, setIsCustomBranColorChecked] = useState(
     user?.brandColor !== DEFAULT_LIGHT_BRAND_COLOR || user?.darkBrandColor !== DEFAULT_DARK_BRAND_COLOR
   );
-  const [hideBrandingValue, setHideBrandingValue] = useState(user?.hideBranding ?? false);
   useTheme(user?.appTheme);
   useBrandColors(user?.appTheme ?? null, {
     brandColor: user?.brandColor,
     darkBrandColor: user?.darkBrandColor,
   });
-
-  const userAppThemeFormMethods = useForm({
-    defaultValues: {
-      appTheme: user.appTheme,
-    },
-  });
-
-  const {
-    formState: { isSubmitting: isUserAppThemeSubmitting, isDirty: isUserAppThemeDirty },
-    reset: resetUserAppThemeReset,
-  } = userAppThemeFormMethods;
-
-  const userThemeFormMethods = useForm({
-    defaultValues: {
-      theme: user.theme,
-    },
-  });
-
-  const {
-    formState: { isSubmitting: isUserThemeSubmitting, isDirty: isUserThemeDirty },
-    reset: resetUserThemeReset,
-  } = userThemeFormMethods;
 
   const bookerLayoutFormMethods = useForm({
     defaultValues: {
@@ -122,7 +94,7 @@ const AppearanceView = ({
     reset: resetBrandColorsThemeReset,
   } = brandColorsFormMethods;
 
-  const selectedTheme = userThemeFormMethods.watch("theme");
+  const selectedTheme = user.theme ?? "";
   const selectedThemeIsDark =
     selectedTheme === "dark" ||
     (selectedTheme === "" &&
@@ -137,8 +109,6 @@ const AppearanceView = ({
       showToast(t("settings_updated_successfully"), "success");
       resetBrandColorsThemeReset({ brandColor: data.brandColor, darkBrandColor: data.darkBrandColor });
       resetBookerLayoutThemeReset({ metadata: data.metadata });
-      resetUserThemeReset({ theme: data.theme });
-      resetUserAppThemeReset({ appTheme: data.appTheme });
     },
     onError: (error) => {
       if (error.message) {
@@ -156,114 +126,8 @@ const AppearanceView = ({
 
   return (
     <SettingsHeader title={t("appearance")} description={t("appearance_description")}>
-      <div className="border-subtle mt-6 flex items-center rounded-t-lg border p-6 text-sm">
-        <div>
-          <p className="text-default text-base font-semibold">{t("app_theme")}</p>
-          <p className="text-default">{t("app_theme_applies_note")}</p>
-        </div>
-      </div>
-      <Form
-        form={userAppThemeFormMethods}
-        handleSubmit={({ appTheme }) => {
-          if (appTheme === "system") appTheme = null;
-          mutation.mutate({
-            appTheme,
-          });
-        }}>
-        <div className="border-subtle flex flex-col justify-between border-x px-6 py-8 sm:flex-row">
-          <ThemeLabel
-            variant="system"
-            value="system"
-            label={t("theme_system")}
-            defaultChecked={user.appTheme === null}
-            register={userAppThemeFormMethods.register}
-            fieldName="appTheme"
-          />
-          <ThemeLabel
-            variant="light"
-            value="light"
-            label={t("light")}
-            defaultChecked={user.appTheme === "light"}
-            register={userAppThemeFormMethods.register}
-            fieldName="appTheme"
-          />
-          <ThemeLabel
-            variant="dark"
-            value="dark"
-            label={t("dark")}
-            defaultChecked={user.appTheme === "dark"}
-            register={userAppThemeFormMethods.register}
-            fieldName="appTheme"
-          />
-        </div>
-        <SectionBottomActions className="mb-6" align="end">
-          <Button
-            loading={mutation.isPending}
-            disabled={isUserAppThemeSubmitting || !isUserAppThemeDirty}
-            type="submit"
-            data-testid="update-app-theme-btn"
-            color="primary">
-            {t("update")}
-          </Button>
-        </SectionBottomActions>
-      </Form>
-
       {isApartOfOrganization ? null : (
         <>
-          <div className="border-subtle mt-6 flex items-center rounded-t-lg border p-6 text-sm">
-            <div>
-              <p className="text-default text-base font-semibold">{t("theme")}</p>
-              <p className="text-default">{t("theme_applies_note")}</p>
-            </div>
-          </div>
-          <Form
-            form={userThemeFormMethods}
-            handleSubmit={({ theme }) => {
-              if (theme === "light" || theme === "dark") {
-                mutation.mutate({
-                  theme,
-                });
-                return;
-              }
-              mutation.mutate({
-                theme: null,
-              });
-            }}>
-            <div className="border-subtle flex flex-col justify-between border-x px-6 py-8 sm:flex-row">
-              <ThemeLabel
-                variant="system"
-                value="system"
-                label={t("theme_system")}
-                defaultChecked={user.theme === null}
-                register={userThemeFormMethods.register}
-              />
-              <ThemeLabel
-                variant="light"
-                value="light"
-                label={t("light")}
-                defaultChecked={user.theme === "light"}
-                register={userThemeFormMethods.register}
-              />
-              <ThemeLabel
-                variant="dark"
-                value="dark"
-                label={t("dark")}
-                defaultChecked={user.theme === "dark"}
-                register={userThemeFormMethods.register}
-              />
-            </div>
-            <SectionBottomActions className="mb-6" align="end">
-              <Button
-                loading={mutation.isPending}
-                disabled={isUserThemeSubmitting || !isUserThemeDirty}
-                type="submit"
-                data-testid="update-theme-btn"
-                color="primary">
-                {t("update")}
-              </Button>
-            </SectionBottomActions>
-          </Form>
-
           <Form
             form={bookerLayoutFormMethods}
             handleSubmit={(values) => {
@@ -388,19 +252,6 @@ const AppearanceView = ({
         Preview
       </Button> */}
 
-          <SettingsToggle
-            toggleSwitchAtTheEnd={true}
-            title={t("disable_cal_branding", { appName: APP_NAME })}
-            disabled={!hasPaidPlan || mutation?.isPending}
-            description={t("removes_cal_branding", { appName: APP_NAME })}
-            checked={hasPaidPlan ? hideBrandingValue : false}
-            Badge={<UpgradeTeamsBadgeWebWrapper />}
-            onCheckedChange={(checked) => {
-              setHideBrandingValue(checked);
-              mutation.mutate({ hideBranding: checked });
-            }}
-            switchContainerClassName="mt-6"
-          />
         </>
       )}
     </SettingsHeader>

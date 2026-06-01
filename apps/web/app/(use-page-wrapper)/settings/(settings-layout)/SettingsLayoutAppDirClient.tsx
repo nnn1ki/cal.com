@@ -6,17 +6,16 @@ import { useOrgBranding } from "@calcom/features/ee/organizations/context/provid
 import {
   HAS_ORG_OPT_IN_FEATURES,
   HAS_TEAM_OPT_IN_FEATURES,
-  HAS_USER_OPT_IN_FEATURES,
 } from "@calcom/features/feature-opt-in/config";
 import type { TeamFeatures } from "@calcom/features/flags/config";
 import { useIsFeatureEnabledForTeam } from "@calcom/features/flags/hooks/useIsFeatureEnabledForTeam";
-import { HOSTED_CAL_FEATURES, IS_CALCOM, WEBAPP_URL } from "@calcom/lib/constants";
+import { IS_CALCOM, WEBAPP_URL } from "@calcom/lib/constants";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import { getUserAvatarUrl } from "@calcom/lib/getAvatarUrl";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { IdentityProvider, UserPermissionRole } from "@calcom/prisma/enums";
+import { UserPermissionRole } from "@calcom/prisma/enums";
 import { trpc } from "@calcom/trpc/react";
 import classNames from "@calcom/ui/classNames";
 import { Badge } from "@calcom/ui/components/badge";
@@ -36,6 +35,8 @@ import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import Shell from "~/shell/Shell";
 
+const hideTeamsSection = true;
+
 const getTabs = (orgBranding: OrganizationBranding | null) => {
   const tabs: VerticalTabItemProps[] = [
     {
@@ -54,39 +55,10 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
           trackingMetadata: { section: "my_account", page: "general" },
         },
         {
-          name: "calendars",
-          href: "/settings/my-account/calendars",
-          trackingMetadata: { section: "my_account", page: "calendars" },
-        },
-        {
-          name: "conferencing",
-          href: "/settings/my-account/conferencing",
-          trackingMetadata: { section: "my_account", page: "conferencing" },
-        },
-        {
           name: "appearance",
           href: "/settings/my-account/appearance",
           trackingMetadata: { section: "my_account", page: "appearance" },
         },
-        {
-          name: "out_of_office",
-          href: "/settings/my-account/out-of-office",
-          trackingMetadata: { section: "my_account", page: "out_of_office" },
-        },
-        {
-          name: "push_notifications",
-          href: "/settings/my-account/push-notifications",
-          trackingMetadata: { section: "my_account", page: "push_notifications" },
-        },
-        ...(HAS_USER_OPT_IN_FEATURES
-          ? [
-            {
-              name: "features",
-              href: "/settings/my-account/features",
-              trackingMetadata: { section: "my_account", page: "features" },
-            },
-          ]
-          : []),
         // TODO
         // { name: "referrals", href: "/settings/my-account/referrals" },
       ],
@@ -101,64 +73,6 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
           href: "/settings/security/password",
           trackingMetadata: { section: "security", page: "password" },
         },
-        {
-          name: "impersonation",
-          href: "/settings/security/impersonation",
-          trackingMetadata: { section: "security", page: "impersonation" },
-        },
-        {
-          name: "2fa_auth",
-          href: "/settings/security/two-factor-auth",
-          trackingMetadata: { section: "security", page: "2fa_auth" },
-        },
-        {
-          name: "compliance",
-          href: "/settings/security/compliance",
-          trackingMetadata: { section: "security", page: "compliance" },
-        },
-      ],
-    },
-    {
-      name: "billing",
-      href: "/settings/billing",
-      icon: "credit-card",
-      children: [
-        {
-          name: "manage_billing",
-          href: "/settings/billing",
-          trackingMetadata: { section: "billing", page: "manage_billing" },
-        },
-      ],
-    },
-    {
-      name: "developer",
-      href: "/settings/developer",
-      icon: "terminal",
-      children: [
-        //
-        {
-          name: "webhooks",
-          href: "/settings/developer/webhooks",
-          trackingMetadata: { section: "developer", page: "webhooks" },
-        },
-        {
-          name: "oAuth",
-          href: "/settings/developer/oauth",
-          trackingMetadata: { section: "developer", page: "oauth_clients" },
-        },
-        {
-          name: "api_keys",
-          href: "/settings/developer/api-keys",
-          trackingMetadata: { section: "developer", page: "api_keys" },
-        },
-        {
-          name: "api_docs",
-          href: "https://cal.com/docs/api-reference/v2/introduction",
-          isExternalLink: true,
-          trackingMetadata: { section: "developer", page: "api_docs" },
-        },
-        // TODO: Add profile level for embeds
-        // { name: "embeds", href: "/v2/settings/developer/embeds" },
       ],
     },
     {
@@ -221,12 +135,14 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
           : []),
       ],
     },
-    {
+    !hideTeamsSection
+      ? {
       name: "teams",
       href: "/teams",
       icon: "users",
       children: [],
-    },
+    }
+      : null,
     {
       name: "other_teams",
       href: "/settings/organizations/teams/other",
@@ -306,19 +222,9 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
         },
       ],
     },
-  ];
+  ].filter(Boolean) as VerticalTabItemProps[];
 
   for (const tab of tabs) {
-    if (tab.name === "security" && !HOSTED_CAL_FEATURES) {
-      tab.children?.push({
-        name: "sso_configuration",
-        href: "/settings/security/sso",
-        trackingMetadata: { section: "security", page: "sso_configuration" },
-      });
-      // TODO: Enable dsync for self hosters
-      // tab.children?.push({ name: "directory_sync", href: "/settings/security/dsync" });
-    }
-
     if (tab.name === "admin" && IS_CALCOM) {
       tab.children?.push({
         name: "create_org",
@@ -442,21 +348,6 @@ const useTabs = ({
           name: orgBranding?.name || "organization",
           avatar: getPlaceholderAvatar(orgBranding?.logoUrl, orgBranding?.name),
         };
-      } else if (
-        tab.href === "/settings/security" &&
-        user?.identityProvider === IdentityProvider.GOOGLE &&
-        !user?.twoFactorEnabled &&
-        !user?.passwordAdded
-      ) {
-        const filtered = tab?.children?.filter(
-          (childTab) => childTab.href !== "/settings/security/two-factor-auth"
-        );
-        return { ...tab, children: filtered };
-      } else if (tab.href === "/settings/developer") {
-        const filtered = tab?.children?.filter(
-          (childTab) => permissions?.canUpdateOrganization || childTab.name !== "api_docs"
-        );
-        return { ...tab, children: filtered };
       }
       return tab;
     });
@@ -464,7 +355,7 @@ const useTabs = ({
     // check if name is in adminRequiredKeys
     return processedTabs.filter((tab) => {
       if (organizationRequiredKeys.includes(tab.name)) return !!orgBranding;
-      if (tab.name === "other_teams" && !permissions?.canUpdateOrganization) return false;
+      if (tab.name === "other_teams" && (!permissions?.canUpdateOrganization || hideTeamsSection)) return false;
 
       if (isAdmin) return true;
       return !adminRequiredKeys.includes(tab.name);
