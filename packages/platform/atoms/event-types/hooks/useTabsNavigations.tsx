@@ -35,6 +35,9 @@ export const useTabsNavigations = ({
   canReadWorkflows = false,
 }: Props) => {
   const { t } = useLocale();
+  void eventTypeApps;
+  void allActiveWorkflows;
+  void canReadWorkflows;
 
   const length = formMethods.watch("length");
   const multipleDuration = formMethods.watch("metadata")?.multipleDuration;
@@ -42,33 +45,11 @@ export const useTabsNavigations = ({
   const watchSchedulingType = formMethods.watch("schedulingType");
   const watchChildrenCount = formMethods.watch("children").length;
   const availability = formMethods.watch("availability");
-  const appsMetadata = formMethods.getValues("metadata")?.apps;
-
   const { isManagedEventType, isChildrenManagedEventType } = useLockedFieldsManager({
     eventType,
     translate: t,
     formMethods,
   });
-
-  let enabledAppsNumber = 0;
-
-  if (appsMetadata) {
-    enabledAppsNumber = Object.entries(appsMetadata).filter(
-      ([appId, appData]) =>
-        eventTypeApps?.items.find((app) => app.slug === appId)?.isInstalled && appData.enabled
-    ).length;
-  }
-  const paymentAppData = getPaymentAppData({
-    ...eventType,
-    metadata: eventTypeMetaDataSchemaWithTypedApps.parse(eventType.metadata),
-  });
-
-  const requirePayment = paymentAppData.price > 0;
-
-  const activeWebhooksNumber = eventType.webhooks.filter((webhook) => webhook.active).length;
-
-  const installedAppsNumber = eventTypeApps?.items.filter((app) => app.isInstalled).length || 0;
-  const enabledWorkflowsNumber = allActiveWorkflows ? allActiveWorkflows.length : 0;
 
   const eventTypeId = formMethods.getValues("id");
 
@@ -78,22 +59,9 @@ export const useTabsNavigations = ({
       length,
       multipleDuration,
       id: eventTypeId,
-      enabledAppsNumber,
-      installedAppsNumber,
-      enabledWorkflowsNumber,
       availability,
-      canReadWorkflows,
     });
 
-    if (!requirePayment) {
-      navigation.splice(3, 0, {
-        name: t("recurring"),
-        href: `/event-types/${eventTypeId}?tabName=recurring`,
-        icon: "repeat",
-        info: t(`recurring_event_tab_description`),
-        "data-testid": "recurring",
-      });
-    }
     navigation.splice(1, 0, {
       name: t("availability"),
       href: `/event-types/${eventTypeId}?tabName=availability`,
@@ -134,32 +102,18 @@ export const useTabsNavigations = ({
         });
       }
     }
-    navigation.push({
-      name: t("webhooks"),
-      href: `/event-types/${eventTypeId}?tabName=webhooks`,
-      icon: "webhook",
-      info: `${activeWebhooksNumber} ${t("active")}`,
-      "data-testid": "webhooks",
-    });
     return navigation;
   }, [
     t,
-    enabledAppsNumber,
-    installedAppsNumber,
-    enabledWorkflowsNumber,
     availability,
     isManagedEventType,
     isChildrenManagedEventType,
     team,
     length,
-    requirePayment,
     multipleDuration,
     eventTypeId,
     watchSchedulingType,
     watchChildrenCount,
-    activeWebhooksNumber,
-    canReadWorkflows,
-    eventType.id,
     formMethods,
   ]);
 
@@ -171,11 +125,7 @@ type getNavigationProps = {
   length: number;
   id: number;
   multipleDuration?: EventTypeSetupProps["eventType"]["metadata"]["multipleDuration"];
-  enabledAppsNumber: number;
-  enabledWorkflowsNumber: number;
-  installedAppsNumber: number;
   availability: AvailabilityOption | undefined;
-  canReadWorkflows: boolean;
 };
 
 function getNavigation({
@@ -183,10 +133,6 @@ function getNavigation({
   id,
   multipleDuration,
   t,
-  enabledAppsNumber,
-  installedAppsNumber,
-  enabledWorkflowsNumber,
-  canReadWorkflows,
 }: getNavigationProps) {
   const duration = multipleDuration?.map((duration) => ` ${duration}`) || length;
 
@@ -199,38 +145,13 @@ function getNavigation({
       "data-testid": `basics`,
     },
     {
-      name: t("event_limit_tab_title"),
-      href: `/event-types/${id}?tabName=limits`,
-      icon: "clock",
-      info: t(`event_limit_tab_description`),
-      "data-testid": "event_limit_tab_title",
-    },
-    {
       name: t("event_advanced_tab_title"),
       href: `/event-types/${id}?tabName=advanced`,
       icon: "sliders-vertical",
       info: t(`event_advanced_tab_description`),
       "data-testid": "event_advanced_tab_title",
     },
-    {
-      name: t("apps"),
-      href: `/event-types/${id}?tabName=apps`,
-      icon: "grid-3x3",
-      info: `${t("number_apps", { count: installedAppsNumber })}, ${enabledAppsNumber} ${t("active")}`,
-      "data-testid": "apps",
-    },
   ];
-
-  // Only add workflows tab if user has permission to read workflows
-  if (canReadWorkflows) {
-    baseNavigation.push({
-      name: t("workflows"),
-      href: `/event-types/${id}?tabName=workflows`,
-      icon: "zap",
-      info: `${enabledWorkflowsNumber} ${t("active")}`,
-      "data-testid": "workflows",
-    });
-  }
 
   return baseNavigation;
 }
