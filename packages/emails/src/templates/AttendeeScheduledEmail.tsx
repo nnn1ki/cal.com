@@ -15,6 +15,7 @@ export const AttendeeScheduledEmail = (
       t={props.attendee.language.translate}
       timeFormat={props.attendee?.timeFormat}
       {...props}
+      callToAction={props.callToAction ?? null}
     />
   );
 };

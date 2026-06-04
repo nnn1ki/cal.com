@@ -211,6 +211,7 @@ const selectStatementToGetBookingForCalEventBuilder = {
   oneTimePassword: true,
   status: true,
   eventTypeId: true,
+  bookableResourceId: true,
   userId: true,
   smsReminderNumber: true,
   cancellationReason: true,

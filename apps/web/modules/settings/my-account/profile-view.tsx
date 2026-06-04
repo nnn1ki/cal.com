@@ -2,7 +2,6 @@
 
 import { ErrorCode } from "@calcom/features/auth/lib/ErrorCode";
 import { Dialog } from "@calcom/features/components/controlled-dialog";
-import { isCompanyEmail } from "@calcom/features/ee/organizations/lib/utils";
 import SettingsHeader from "@calcom/features/settings/appDir/SettingsHeader";
 import SectionBottomActions from "@calcom/features/settings/SectionBottomActions";
 import { APP_NAME, FULL_NAME_LENGTH_MAX_LIMIT } from "@calcom/lib/constants";
@@ -41,7 +40,6 @@ import type { BaseSyntheticEvent } from "react";
 import { useRef, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
-import { CompanyEmailOrganizationBanner } from "./components/CompanyEmailOrganizationBanner";
 
 interface DeleteAccountValues {
   totpCode: string;
@@ -136,7 +134,6 @@ const ProfileView = ({ user }: Props) => {
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
   const [hasDeleteErrors, setHasDeleteErrors] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
-  const [isCompanyEmailAlertDismissed, setIsCompanyEmailAlertDismissed] = useState(false);
   const form = useForm<DeleteAccountValues>();
 
   const onDeleteMeSuccessMutation = async () => {
@@ -249,14 +246,6 @@ const ProfileView = ({ user }: Props) => {
     ],
   };
 
-  // Check if user should see company email alert
-  const shouldShowCompanyEmailAlert =
-    !isCompanyEmailAlertDismissed &&
-    !session.data?.user?.org?.id &&
-    !user.organization?.id &&
-    userEmail &&
-    isCompanyEmail(userEmail);
-
   return (
     <SettingsHeader
       title={t("profile")}
@@ -307,13 +296,6 @@ const ProfileView = ({ user }: Props) => {
         }
         isCALIdentityProvider={isCALIdentityProvider}
       />
-
-      {shouldShowCompanyEmailAlert && (
-        <div className="mt-6">
-          <CompanyEmailOrganizationBanner onDismissAction={() => setIsCompanyEmailAlertDismissed(true)} />
-        </div>
-      )}
-
       <div className="border-subtle mt-6 rounded-lg rounded-b-none border border-b-0 p-6">
         <Label className="mb-0 text-base font-semibold text-red-700">{t("danger_zone")}</Label>
         <p className="text-subtle text-sm">{t("account_deletion_cannot_be_undone")}</p>

@@ -105,7 +105,7 @@ export const EventSetupTab = (
 
   const { isChildrenManagedEventType, isManagedEventType, shouldLockIndicator, shouldLockDisableProps } =
     useLockedFieldsManager({ eventType, translate: t, formMethods });
-  const showLocationSection = false;
+  const showLocationSection = true;
 
   const lengthLockedProps = shouldLockDisableProps("length");
   const descriptionLockedProps = shouldLockDisableProps("description");

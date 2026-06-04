@@ -631,3 +631,44 @@ describe("EventManager credential lookup methods", () => {
     });
   });
 });
+
+describe("EventManager resource bookings", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not fall back to Cal Video when a resource booking has no location", async () => {
+    const eventManager = new EventManager({
+      credentials: [],
+      destinationCalendar: null,
+    });
+
+    const createVideoEventSpy = vi.spyOn(eventManager as never, "createVideoEvent" as never);
+    const createAllCalendarEventsSpy = vi
+      .spyOn(eventManager as never, "createAllCalendarEvents" as never)
+      .mockResolvedValue([]);
+    const createAllCRMEventsSpy = vi
+      .spyOn(eventManager as never, "createAllCRMEvents" as never)
+      .mockResolvedValue([]);
+    await eventManager.create({
+      type: "hairdresser-place",
+      title: "Hairdresser Place",
+      startTime: new Date("2026-06-04T10:00:00.000Z").toISOString(),
+      endTime: new Date("2026-06-04T10:30:00.000Z").toISOString(),
+      organizer: {
+        name: "Organizer",
+        email: "organizer@example.com",
+        timeZone: "Asia/Irkutsk",
+        language: { translate: ((key: string) => key) as never, locale: "en" },
+      },
+      attendees: [],
+      bookerUrl: "http://localhost:3000",
+      bookableResourceId: 55,
+      location: null,
+    });
+
+    expect(createVideoEventSpy).not.toHaveBeenCalled();
+    expect(createAllCalendarEventsSpy).toHaveBeenCalledOnce();
+    expect(createAllCRMEventsSpy).toHaveBeenCalledOnce();
+  });
+});

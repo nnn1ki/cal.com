@@ -322,7 +322,7 @@ export const getPublicEvent = async (
 
     const defaultEventBookerLayouts = {
       enabledLayouts: [...bookerLayoutOptions],
-      defaultLayout: BookerLayouts.MONTH_VIEW,
+      defaultLayout: BookerLayouts.COLUMN_VIEW,
     } as BookerLayoutSettings;
     const disableBookingTitle = !defaultEvent.isDynamic;
     const unPublishedOrgUser = users.find((user) => user.profile?.organization?.slug === null);

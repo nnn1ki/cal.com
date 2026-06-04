@@ -39,7 +39,7 @@ export function UserPage(props: PageProps) {
     publicUserBookerEventData.profile.bookerLayouts = {
       ...(publicUserBookerEventData.profile.bookerLayouts ?? defaultBookerLayoutSettings),
       enabledLayouts: [BookerLayouts.WEEK_VIEW, BookerLayouts.COLUMN_VIEW],
-      defaultLayout: BookerLayouts.WEEK_VIEW,
+      defaultLayout: BookerLayouts.COLUMN_VIEW,
     };
   }
 
@@ -63,7 +63,7 @@ export function UserPage(props: PageProps) {
                 <Booker
                   username={user.profile.username ?? profile.username ?? ""}
                   eventSlug={bookerEventData.slug}
-                  initialLayout="week_view"
+                  initialLayout="column_view"
                   allEventType={allEventTypes}
                   hideBranding={false}
                   eventData={bookerEventData}

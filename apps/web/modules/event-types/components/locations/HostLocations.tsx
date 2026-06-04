@@ -8,6 +8,7 @@ import { components } from "react-select";
 
 import { appStoreMetadata } from "@calcom/app-store/appStoreMetaData";
 import {
+  DailyLocationType,
   defaultLocations,
   getAppSlugFromLocationType,
   getEventLocationType,
@@ -84,6 +85,9 @@ const filterOutBookerInputLocations = (options: TLocationOptions): TLocationOpti
     .map((group) => ({
       ...group,
       options: group.options.filter((opt) => {
+        if (opt.value === DailyLocationType) {
+          return false;
+        }
         const locationType = getEventLocationType(opt.value);
         return !locationType?.attendeeInputType;
       }),
@@ -619,6 +623,7 @@ const buildFullLocationOptions = (
   for (const app of Object.values(appStoreMetadata)) {
     const locationData = app.appData?.location;
     if (!locationData || existingValues.has(locationData.type)) continue;
+    if (locationData.type === DailyLocationType) continue;
 
     const locationType = getEventLocationType(locationData.type);
     if (locationType?.attendeeInputType) continue;

@@ -69,6 +69,7 @@ import {
   scheduleTrigger,
 } from "@calcom/features/webhooks/lib/scheduleTrigger";
 import type { EventPayloadType, EventTypeInfo } from "@calcom/features/webhooks/lib/sendPayload";
+import { getTranslation } from "@calcom/i18n/server";
 import { groupHostsByGroupId } from "@calcom/lib/bookings/hostGroupUtils";
 import { shouldIgnoreContactOwner } from "@calcom/lib/bookings/routing/utils";
 import { getVideoCallUrlFromCalEvent } from "@calcom/lib/CalEventParser";
@@ -83,7 +84,6 @@ import { criticalLogger } from "@calcom/lib/logger.server";
 import { getPiiFreeCalendarEvent, getPiiFreeEventType } from "@calcom/lib/piiFreeData";
 import { safeStringify } from "@calcom/lib/safeStringify";
 import { getServerErrorFromUnknown } from "@calcom/lib/server/getServerErrorFromUnknown";
-import { getTranslation } from "@calcom/i18n/server";
 import { getTimeFormatStringFromUserTimeFormat } from "@calcom/lib/timeFormat";
 import { distributedTracing } from "@calcom/lib/tracing/factory";
 import type { PrismaClient } from "@calcom/prisma";
@@ -1564,6 +1564,7 @@ async function handler(
       location: platformBookingLocation ?? bookingLocation, // Will be processed by the EventManager later.
       conferenceCredentialId,
     })
+    .withBookableResourceId(bookableResourceId ?? null)
     .withDestinationCalendar(
       teamDestinationCalendars.length > 0
         ? [...(destinationCalendar ?? []), ...teamDestinationCalendars]
@@ -2468,7 +2469,7 @@ async function handler(
     isBookingAuditEnabled,
   });
 
-  const webhookLocation= metadata?.videoCallUrl || evt.location;
+  const webhookLocation = metadata?.videoCallUrl || evt.location;
 
   const { assignmentReason: _emailAssignmentReason, ...evtWithoutAssignmentReason } = evt;
   const webhookData: EventPayloadType = {

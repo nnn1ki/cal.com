@@ -187,6 +187,7 @@ export interface CalendarEvent {
   uid?: string | null;
   existingRecurringEvent?: ExistingRecurringEvent | null;
   bookingId?: number;
+  bookableResourceId?: number | null;
   videoCallData?: VideoCallData;
   paymentInfo?: PaymentInfo | null;
   requiresConfirmation?: boolean | null;

@@ -451,7 +451,7 @@ export const createBookerStore = () =>
 
       set({ state });
     },
-    layout: BookerLayouts.MONTH_VIEW,
+    layout: BookerLayouts.COLUMN_VIEW,
     setLayout: (layout: BookerLayout) => {
       // If we switch to a large layout and don't have a date selected yet,
       // we selected it here, so week title is rendered properly.
@@ -624,7 +624,7 @@ export const createBookerStore = () =>
         rescheduledBy,
         bookingUid,
         bookingData,
-        layout: layout || BookerLayouts.MONTH_VIEW,
+        layout: layout || BookerLayouts.COLUMN_VIEW,
         isTeamEvent: isTeamEvent || false,
         durationConfig,
         timezone,

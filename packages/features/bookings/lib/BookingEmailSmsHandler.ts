@@ -296,6 +296,17 @@ export class BookingEmailSmsHandler {
       );
     } catch (err) {
       this.log.error("Failed to send scheduled event related emails", err);
+      try {
+        const { sendScheduledFallbackEmails } = await import("@calcom/emails/email-manager");
+        await sendScheduledFallbackEmails(
+          { ...evt, additionalInformation, additionalNotes, customInputs },
+          isHostConfirmationEmailsDisabled,
+          isAttendeeConfirmationEmailDisabled,
+          metadata
+        );
+      } catch (fallbackError) {
+        this.log.error("Failed to send scheduled fallback emails", fallbackError);
+      }
     }
   }
 

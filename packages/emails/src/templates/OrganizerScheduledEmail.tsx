@@ -66,6 +66,7 @@ export const OrganizerScheduledEmail = (
       reassigned={props.reassigned}
       {...props}
       attendee={attendee}
+      callToAction={props.callToAction ?? null}
     />
   );
 };

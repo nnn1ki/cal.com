@@ -7,8 +7,8 @@ import {
   type EventTypeBrandingData,
   getEventTypeService,
 } from "@calcom/features/eventtypes/di/EventTypeService.container";
-import { parseRecurringEvent } from "@calcom/lib/isRecurringEvent";
 import { getTranslation } from "@calcom/i18n/server";
+import { parseRecurringEvent } from "@calcom/lib/isRecurringEvent";
 import { getTimeFormatStringFromUserTimeFormat } from "@calcom/lib/timeFormat";
 import type {
   Attendee,
@@ -103,6 +103,7 @@ export class CalendarEventBuilder {
     const {
       description,
       attendees,
+      bookableResourceId,
       references,
       title,
       startTime,
@@ -191,6 +192,7 @@ export class CalendarEventBuilder {
         userFieldsResponses: calEventResponses.userFieldsResponses,
       })
       .withLocation({ location, conferenceCredentialId })
+      .withBookableResourceId(bookableResourceId ?? null)
       .withIdentifiers({ iCalUID: iCalUID || undefined, iCalSequence })
       .withConfirmation({
         requiresConfirmation: !!eventType.requiresConfirmation,
@@ -366,6 +368,14 @@ export class CalendarEventBuilder {
       ...this.event,
       location,
       conferenceCredentialId,
+    };
+    return this;
+  }
+
+  withBookableResourceId(bookableResourceId?: number | null) {
+    this.event = {
+      ...this.event,
+      bookableResourceId,
     };
     return this;
   }

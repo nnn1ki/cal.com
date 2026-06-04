@@ -205,7 +205,7 @@ export const orgOnboardingTeamsSchema = z.array(
 );
 
 export const defaultBookerLayoutSettings = {
-  defaultLayout: BookerLayouts.MONTH_VIEW,
+  defaultLayout: BookerLayouts.COLUMN_VIEW,
   // if the user has no explicit layouts set (not in user profile and not in event settings), all layouts are enabled.
   enabledLayouts: bookerLayoutOptions,
 };

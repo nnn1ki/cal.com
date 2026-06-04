@@ -33,6 +33,7 @@ import AttendeeRescheduledEmail from "./templates/attendee-rescheduled-email";
 import AttendeeScheduledEmail from "./templates/attendee-scheduled-email";
 import AttendeeUpdatedEmail from "./templates/attendee-updated-email";
 import AttendeeWasRequestedToRescheduleEmail from "./templates/attendee-was-requested-to-reschedule-email";
+import BasicBookingConfirmationEmail from "./templates/basic-booking-confirmation-email";
 import OrganizerAddAttendeeEmail from "./templates/organizer-add-attendee-email";
 import OrganizerAddGuestsEmail from "./templates/organizer-add-guests-email";
 import OrganizerAttendeeCancelledSeatEmail from "./templates/organizer-attendee-cancelled-seat-email";
@@ -162,6 +163,65 @@ export const sendScheduledEmailsAndSMS = withReporting(
   _sendScheduledEmailsAndSMS,
   "sendScheduledEmailsAndSMS"
 );
+
+export const sendScheduledFallbackEmails = async (
+  calEvent: CalendarEvent,
+  hostEmailDisabled?: boolean,
+  attendeeEmailDisabled?: boolean,
+  eventTypeMetadata?: EventTypeMetadata
+) => {
+  const formattedCalEvent = formatCalEvent(calEvent);
+  const emailsToSend: Promise<unknown>[] = [];
+  const organizationSettings = await fetchOrganizationEmailSettings(calEvent.organizationId);
+
+  if (!hostEmailDisabled && !eventTypeDisableHostEmail(eventTypeMetadata)) {
+    emailsToSend.push(
+      sendEmail(
+        () =>
+          new BasicBookingConfirmationEmail({
+            calEvent: formattedCalEvent,
+            recipient: formattedCalEvent.organizer,
+            isOrganizer: true,
+          })
+      )
+    );
+
+    if (formattedCalEvent.team?.members) {
+      for (const teamMember of formattedCalEvent.team.members) {
+        emailsToSend.push(
+          sendEmail(
+            () =>
+              new BasicBookingConfirmationEmail({
+                calEvent: formattedCalEvent,
+                recipient: teamMember,
+                isOrganizer: true,
+              })
+          )
+        );
+      }
+    }
+  }
+
+  if (
+    !attendeeEmailDisabled &&
+    !shouldSkipAttendeeEmailWithSettings(eventTypeMetadata, organizationSettings, EmailType.CONFIRMATION)
+  ) {
+    for (const attendee of formattedCalEvent.attendees) {
+      emailsToSend.push(
+        sendEmail(
+          () =>
+            new BasicBookingConfirmationEmail({
+              calEvent: formattedCalEvent,
+              recipient: attendee,
+              isOrganizer: false,
+            })
+        )
+      );
+    }
+  }
+
+  await Promise.all(emailsToSend);
+};
 
 // for rescheduled round robin booking that assigned new members
 // or for reassignment of a managed event

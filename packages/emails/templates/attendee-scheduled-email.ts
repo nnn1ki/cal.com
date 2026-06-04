@@ -1,5 +1,4 @@
 import { getRichDescription } from "@calcom/lib/CalEventParser";
-import { getReplyToHeader } from "@calcom/lib/getReplyToHeader";
 import { TimeFormat } from "@calcom/lib/timeFormat";
 import type { CalendarEvent, Person } from "@calcom/types/Calendar";
 import type { TFunction } from "i18next";
@@ -36,6 +35,12 @@ export default class AttendeeScheduledEmail extends BaseEmail {
     this.t = attendee.language.translate;
   }
 
+  private getRecipientAddress() {
+    return this.attendee.name?.trim()
+      ? `${this.attendee.name} <${this.attendee.email}>`
+      : this.attendee.email;
+  }
+
   protected async getNodeMailerPayload(): Promise<Record<string, unknown>> {
     const clonedCalEvent = cloneDeep(this.calEvent);
 
@@ -45,12 +50,8 @@ export default class AttendeeScheduledEmail extends BaseEmail {
         role: GenerateIcsRole.ATTENDEE,
         status: "CONFIRMED",
       }),
-      to: `${this.attendee.name} <${this.attendee.email}>`,
+      to: this.getRecipientAddress(),
       from: `${this.calEvent.organizer.name} <${this.getMailerOptions().from}>`,
-      ...getReplyToHeader(
-        this.calEvent,
-        this.calEvent.attendees.filter(({ email }) => email !== this.attendee.email).map(({ email }) => email)
-      ),
       subject: `${this.calEvent.title}`,
       html: await this.getHtml(clonedCalEvent, this.attendee),
       text: this.getTextBody(),

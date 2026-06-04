@@ -11,6 +11,32 @@ import { faker } from "@faker-js/faker";
 import { uuid } from "short-uuid";
 import type z from "zod";
 
+const isUniqueUserConstraintError = (
+  error: unknown
+): error is { code: "P2002"; meta?: { target?: string[] } } => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = Reflect.get(error, "code");
+  if (code !== "P2002") {
+    return false;
+  }
+
+  const meta = Reflect.get(error, "meta");
+  if (!meta || typeof meta !== "object") {
+    return true;
+  }
+
+  const target = Reflect.get(meta, "target");
+  return (
+    !Array.isArray(target) ||
+    target.includes("email") ||
+    target.includes("username") ||
+    target.includes("email_username")
+  );
+};
+
 export async function createUserAndEventType({
   user,
   eventTypes = [],
@@ -66,11 +92,43 @@ export async function createUserAndEventType({
     locale: "en",
   };
 
-  const theUser = await prisma.user.upsert({
-    where: { email: user.email },
-    update: userUpdateData,
-    create: userCreateData,
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: user.email }, { username: user.username }],
+    },
+    select: {
+      id: true,
+    },
   });
+
+  const theUser = existingUser
+    ? await prisma.user.update({
+        where: { id: existingUser.id },
+        data: userUpdateData,
+      })
+    : await prisma.user.create({
+        data: userCreateData,
+      }).catch(async (error) => {
+        if (!isUniqueUserConstraintError(error)) {
+          throw error;
+        }
+
+        const conflictedUser = await prisma.user.findFirst({
+          where: {
+            OR: [{ email: user.email }, { username: user.username }],
+          },
+          select: { id: true },
+        });
+
+        if (!conflictedUser) {
+          throw error;
+        }
+
+        return await prisma.user.update({
+          where: { id: conflictedUser.id },
+          data: userUpdateData,
+        });
+      });
 
   await prisma.userPassword.upsert({
     where: { userId: theUser.id },

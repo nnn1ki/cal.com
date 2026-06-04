@@ -6,7 +6,7 @@ import { useFieldArray } from "react-hook-form";
 import type { UseFormGetValues, UseFormSetValue, Control, FormState } from "react-hook-form";
 
 import type { EventLocationType } from "@calcom/app-store/locations";
-import { getEventLocationType, MeetLocationType } from "@calcom/app-store/locations";
+import { DailyLocationType, getEventLocationType, MeetLocationType } from "@calcom/app-store/locations";
 import { useIsPlatform } from "@calcom/atoms/hooks/useIsPlatform";
 import type { LocationCustomClassNames } from "@calcom/features/eventtypes/components/locations/types";
 import type { LocationFormValues, EventTypeSetupProps } from "@calcom/features/eventtypes/lib/types";
@@ -110,6 +110,9 @@ const Locations: React.FC<LocationsProps> = ({
   const locationOptions = props.locationOptions.map((locationOption) => {
     const options = locationOption.options.filter((option) => {
       // Skip "Organizer's Default App" for non-team members
+      if (option.value === DailyLocationType) {
+        return false;
+      }
       return !team?.id ? option.label !== t("organizer_default_conferencing_app") : true;
     });
 
@@ -415,7 +418,7 @@ const Locations: React.FC<LocationsProps> = ({
           </li>
         )}
       </ul>
-      {props.showAppStoreLink && !isPlatform && (
+      {/* {props.showAppStoreLink && !isPlatform && (
         <p className="text-default mt-2 text-sm">
           <ServerTrans
             t={t}
@@ -430,7 +433,7 @@ const Locations: React.FC<LocationsProps> = ({
             ]}
           />
         </p>
-      )}
+      )} */}
     </div>
   );
 };
