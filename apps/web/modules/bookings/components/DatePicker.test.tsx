@@ -59,7 +59,7 @@ describe("Tests for DatePicker Component", () => {
     );
   });
 
-  test("when there are only slots in the next month, skip the current month", async () => {
+  test("when there are only slots in the next month, keep the selected month", async () => {
     // there'll be one slot open on this day, next month.
     const slotDate = dayjs().add(1, "month");
     render(
@@ -80,8 +80,6 @@ describe("Tests for DatePicker Component", () => {
         },
       }
     );
-    // slot date is next month, so it'll have skipped the current month
-    // by setting the browsingDate to the next month.
     expect(DatePickerComponent).toHaveBeenCalledWith(
       expect.objectContaining({
         browsingDate: slotDate.startOf("month"),
@@ -90,7 +88,7 @@ describe("Tests for DatePicker Component", () => {
     );
   });
 
-  test("when there are no slots, check for infinite loop (skip only 1 month)", async () => {
+  test("when there are no slots, keep the currently selected month", async () => {
     render(
       <DatePicker
         event={{}}
@@ -103,15 +101,36 @@ describe("Tests for DatePicker Component", () => {
       />,
       {
         mockStore: {
-          month: dayjs().add(1, "month").format("YYYY-MM"), // Start with next month to simulate the auto-advance
+          month: dayjs().add(1, "month").format("YYYY-MM"),
         },
       }
     );
-    // slot date is next month, so it'll have skipped the current month
-    // by setting the browsingDate to the next month.
     expect(DatePickerComponent).toHaveBeenCalledWith(
       expect.objectContaining({
         browsingDate: dayjs().add(1, "month").startOf("month"),
+      }),
+      expect.anything()
+    );
+  });
+
+  test("does not restrict the calendar to only included slot dates", async () => {
+    render(
+      <DatePicker
+        event={{}}
+        slots={{
+          [dayjs().add(1, "day").format("YYYY-MM-DD")]: [
+            {
+              time: dayjs().add(1, "day").format("YYYY-MM-DDTHH:mm:ss"),
+            },
+          ],
+        }}
+        isLoading={false}
+      />
+    );
+
+    expect(DatePickerComponent).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        includedDates: expect.anything(),
       }),
       expect.anything()
     );

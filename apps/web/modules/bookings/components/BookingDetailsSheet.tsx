@@ -1,7 +1,10 @@
 "use client";
 
 import dayjs from "@calcom/dayjs";
-import { shouldShowFieldInCustomResponses } from "@calcom/lib/bookings/SystemField";
+import {
+  ATTENDEE_PHONE_NUMBER_FIELD,
+  shouldShowFieldInCustomResponses,
+} from "@calcom/lib/bookings/SystemField";
 import { formatPrice } from "@calcom/lib/currencyConversions";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import { getUserAvatarUrl } from "@calcom/lib/getAvatarUrl";
@@ -553,6 +556,30 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
     return null;
   }
 
+  const responses = (booking.responses ?? {}) as Record<string, unknown>;
+  const responsePhoneNumber =
+    typeof responses[ATTENDEE_PHONE_NUMBER_FIELD] === "string"
+      ? responses[ATTENDEE_PHONE_NUMBER_FIELD]
+      : null;
+  const parsedBookingFields = eventTypeBookingFields.safeParse(booking.eventType?.bookingFields);
+  const bookingFields = parsedBookingFields.success ? parsedBookingFields.data : [];
+  const getSeatData = (attendee: BookingOutput["attendees"][number]) => {
+    const attendeeWithSeat = attendee as typeof attendee & {
+      bookingSeat?: {
+        data?: unknown;
+      } | null;
+    };
+
+    if (
+      !attendeeWithSeat.bookingSeat?.data ||
+      typeof attendeeWithSeat.bookingSeat.data !== "object"
+    ) {
+      return null;
+    }
+
+    return attendeeWithSeat.bookingSeat.data as Record<string, unknown>;
+  };
+
   return (
     <Section title={t("who")}>
       <div className="mt-2 flex flex-col gap-3">
@@ -562,6 +589,40 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
             attendee.name ||
             attendee.user?.email ||
             attendee.email;
+          const phoneNumber = attendee.phoneNumber || responsePhoneNumber;
+          const seatData = getSeatData(attendee);
+          const seatResponses =
+            seatData?.responses && typeof seatData.responses === "object"
+              ? (seatData.responses as Record<string, unknown>)
+              : null;
+          const seatDescription =
+            typeof seatData?.description === "string" ? seatData.description : null;
+          const attendeeDetails = bookingFields
+            .map((field) => {
+              if (!field || !seatResponses) return null;
+              if (!shouldShowFieldInCustomResponses(field.name)) return null;
+
+              const answer = seatResponses[field.name];
+              if (!answer) return null;
+              if (Array.isArray(answer) && answer.length === 0) return null;
+
+              const value =
+                field.type === "boolean"
+                  ? answer
+                    ? t("yes")
+                    : t("no")
+                  : Array.isArray(answer)
+                    ? answer.join(", ")
+                    : String(answer);
+
+              return {
+                key: field.name,
+                label: field.label || t(field.defaultLabel || field.name),
+                value,
+              };
+            })
+            .filter((detail): detail is { key: string; label: string; value: string } => Boolean(detail));
+
           return (
             <div key={idx} className="flex items-center gap-4">
               <Avatar
@@ -575,10 +636,25 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
               />
               <div className="min-w-0 flex-1">
                 <p className="text-emphasis truncate text-sm leading-[1.2]">{name}</p>
-                {attendee.phoneNumber && (
-                  <p className="text-default truncate text-sm leading-[1.2]">{attendee.phoneNumber}</p>
+                {phoneNumber && (
+                  <p className="text-default truncate text-sm leading-[1.2]">{phoneNumber}</p>
                 )}
                 <p className="text-default truncate text-sm leading-[1.2]">{attendee.email}</p>
+                {(attendeeDetails.length > 0 || seatDescription) && (
+                  <div className="mt-2 flex flex-col gap-1">
+                    {attendeeDetails.map((detail) => (
+                      <p key={detail.key} className="text-default break-words text-sm leading-[1.2]">
+                        <span className="font-medium text-emphasis">{detail.label}:</span> {detail.value}
+                      </p>
+                    ))}
+                    {seatDescription && (
+                      <p className="text-default break-words text-sm leading-[1.2]">
+                        <span className="font-medium text-emphasis">{t("additional_notes")}:</span>{" "}
+                        {seatDescription}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -879,15 +955,18 @@ function CancelledBookingInfo({ booking }: { booking: BookingOutput }) {
 
 function AdditionalNotesSection({ booking }: { booking: BookingOutput }) {
   const { t } = useLocale();
+  const responses = (booking.responses ?? {}) as Record<string, unknown>;
+  const notesFromResponses = typeof responses.notes === "string" ? responses.notes : null;
+  const description = booking.description || notesFromResponses;
 
-  if (!booking.description) {
+  if (!description) {
     return null;
   }
 
   return (
     <Section title={t("additional_notes")}>
       <p className="whitespace-pre-wrap font-medium text-emphasis text-sm">
-        {booking.description}
+        {description}
       </p>
     </Section>
   );

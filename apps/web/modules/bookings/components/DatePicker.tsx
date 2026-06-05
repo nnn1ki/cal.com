@@ -5,7 +5,6 @@ import dayjs from "@calcom/dayjs";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import type { DatePickerClassNames } from "@calcom/features/bookings/Booker/types";
 import { DatePicker as DatePickerComponent } from "@calcom/features/calendars/components/DatePicker";
-import { useNonEmptyScheduleDays } from "@calcom/web/modules/schedules/hooks/useNonEmptyScheduleDays";
 import { weekdayToWeekIndex } from "@calcom/lib/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import type { User } from "@calcom/prisma/client";
@@ -13,44 +12,6 @@ import type { PeriodData } from "@calcom/types/Event";
 import { useSlotsViewOnSmallScreen } from "@calcom/embed-core/embed-iframe";
 
 import type { Slots } from "@calcom/features/bookings/types";
-
-const useMoveToNextMonthOnNoAvailability = ({
-  browsingDate,
-  nonEmptyScheduleDays,
-  onMonthChange,
-  isLoading,
-}: {
-  browsingDate: Dayjs;
-  nonEmptyScheduleDays: string[];
-  isLoading: boolean;
-  onMonthChange: (date: Dayjs) => void;
-}) => {
-  if (isLoading) {
-    return {
-      moveToNextMonthOnNoAvailability: () => {
-        /* return noop until ready */
-      },
-    };
-  }
-
-  const nonEmptyScheduleDaysInBrowsingMonth = nonEmptyScheduleDays.filter((date) =>
-    dayjs(date).isSame(browsingDate, "month")
-  );
-
-  const moveToNextMonthOnNoAvailability = () => {
-    const currentMonth = dayjs().startOf("month").format("YYYY-MM");
-    const browsingMonth = browsingDate.format("YYYY-MM");
-    // Not meeting the criteria to move to next month
-    // Has to be currentMonth and it must have all days unbookable
-    if (currentMonth != browsingMonth || nonEmptyScheduleDaysInBrowsingMonth.length) {
-      return;
-    }
-    onMonthChange(browsingDate.add(1, "month"));
-  };
-  return {
-    moveToNextMonthOnNoAvailability,
-  };
-};
 
 export const DatePicker = ({
   event,
@@ -99,16 +60,7 @@ export const DatePicker = ({
     setDayCount(null); // Whenever the month is changed, we nullify getting X days
   };
 
-  const nonEmptyScheduleDays = useNonEmptyScheduleDays(slots);
   const browsingDate = month ? dayjs(month) : dayjs().startOf("month");
-
-  const { moveToNextMonthOnNoAvailability } = useMoveToNextMonthOnNoAvailability({
-    browsingDate,
-    nonEmptyScheduleDays,
-    onMonthChange,
-    isLoading: isLoading ?? true,
-  });
-  moveToNextMonthOnNoAvailability();
 
   // Determine if this is a compact sidebar view based on layout
   const isCompact = layout !== "month_view" && layout !== "mobile";
@@ -156,7 +108,6 @@ export const DatePicker = ({
         }
       }}
       onMonthChange={onMonthChange}
-      includedDates={nonEmptyScheduleDays}
       locale={i18n.language}
       browsingDate={month ? dayjs(month) : undefined}
       selected={dayjs(selectedDate)}
