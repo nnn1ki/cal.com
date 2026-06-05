@@ -614,6 +614,7 @@ export async function getBookings({
               .selectFrom("Attendee")
               .select((eb) => [
                 "Attendee.id",
+                "Attendee.bookingId",
                 "Attendee.email",
                 "Attendee.name",
                 "Attendee.timeZone",
