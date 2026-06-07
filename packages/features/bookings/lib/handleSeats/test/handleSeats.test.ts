@@ -750,6 +750,115 @@ describe("handleSeats", () => {
         ).rejects.toThrowError(ErrorCode.AlreadySignedUpForBooking);
       });
 
+      test("If owner books the same seated slot for themselves again, allow duplicate booking", async () => {
+        const handleNewBooking = getNewBookingHandler();
+
+        const organizer = getOrganizer({
+          name: "Organizer",
+          email: "organizer@example.com",
+          id: 101,
+          schedules: [TestData.schedules.IstWorkHours],
+        });
+
+        const bookingId = 1;
+        const bookingUid = "owner-duplicate-seat";
+        const { dateString: plus1DateString } = getDate({ dateIncrement: 1 });
+        const bookingStartTime = `${plus1DateString}T04:00:00Z`;
+        const bookingEndTime = `${plus1DateString}T04:30:00Z`;
+
+        await createBookingScenario(
+          getScenarioData({
+            eventTypes: [
+              {
+                id: 1,
+                slug: "seated-event-owner-duplicate",
+                slotInterval: 30,
+                length: 30,
+                users: [
+                  {
+                    id: 101,
+                  },
+                ],
+                seatsPerTimeSlot: 3,
+                seatsShowAttendees: false,
+              },
+            ],
+            bookings: [
+              {
+                id: bookingId,
+                uid: bookingUid,
+                eventTypeId: 1,
+                userId: organizer.id,
+                startTime: bookingStartTime,
+                endTime: bookingEndTime,
+                status: BookingStatus.ACCEPTED,
+                attendees: [
+                  getMockBookingAttendee({
+                    id: 1,
+                    name: organizer.name,
+                    email: organizer.email,
+                    locale: "en",
+                    timeZone: "America/Toronto",
+                    bookingSeat: {
+                      referenceUid: "owner-booking-seat-1",
+                      data: {},
+                    },
+                  }),
+                ],
+              },
+            ],
+            organizer,
+          })
+        );
+
+        mockSuccessfulVideoMeetingCreation({
+          metadataLookupKey: "dailyvideo",
+          videoMeetingData: {
+            id: "MOCK_ID",
+            password: "MOCK_PASS",
+            url: "http://mock-dailyvideo.example.com/owner-duplicate",
+          },
+        });
+
+        const mockBookingData = getMockRequestDataForBooking({
+          data: {
+            eventTypeId: 1,
+            responses: {
+              email: organizer.email,
+              name: organizer.name,
+              location: { optionValue: "", value: BookingLocations.CalVideo },
+            },
+            bookingUid,
+            user: "ownerSelfBooking",
+          },
+        });
+
+        const createdBooking = await handleNewBooking({
+          bookingData: mockBookingData,
+          userId: organizer.id,
+        });
+
+        expect(createdBooking.uid).toBe(bookingUid);
+
+        const updatedBooking = await prismaMock.booking.findUnique({
+          where: {
+            uid: bookingUid,
+          },
+          include: {
+            attendees: {
+              include: {
+                bookingSeat: true,
+              },
+            },
+          },
+        });
+
+        expect(updatedBooking?.attendees).toHaveLength(2);
+        expect(
+          updatedBooking?.attendees.filter((attendee) => attendee.email === organizer.email)
+        ).toHaveLength(2);
+      });
+
       test("If event is already full, fail", async () => {
         const handleNewBooking = getNewBookingHandler();
 

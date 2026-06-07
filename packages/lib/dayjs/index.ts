@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import "@calcom/dayjs/locales";
 import type { Dayjs } from "@calcom/dayjs";
 import dayjs from "@calcom/dayjs";
 
@@ -110,6 +111,34 @@ export const formatToLocalizedTimezone = (
   return Intl.DateTimeFormat(locale, { timeZoneName, timeZone })
     .formatToParts(theDate)
     .find((d) => d.type == "timeZoneName")?.value;
+};
+
+export const formatDateInRussian = (
+  date: string | Date | Dayjs,
+  {
+    timeZone,
+    weekday = false,
+    month = "long",
+    includeYear = true,
+    includeYearSuffix = month === "long",
+  }: {
+    timeZone?: string | null;
+    weekday?: "short" | "long" | false;
+    month?: "short" | "long";
+    includeYear?: boolean;
+    includeYearSuffix?: boolean;
+  } = {}
+) => {
+  const formattedDate = timeZone ? dayjs(date).tz(timeZone).locale("ru") : dayjs(date).locale("ru");
+  const weekdayFormat = weekday === "short" ? "ddd" : weekday === "long" ? "dddd" : null;
+  const monthFormat = month === "short" ? "MMM" : "MMMM";
+  const dateFormat = `D ${monthFormat}${includeYear ? " YYYY" : ""}${
+    includeYear && includeYearSuffix ? " [года]" : ""
+  }`;
+
+  return [weekdayFormat, dateFormat].filter(Boolean).join(", ").trim()
+    ? formattedDate.format([weekdayFormat, dateFormat].filter(Boolean).join(", "))
+    : formattedDate.format(dateFormat);
 };
 
 /**

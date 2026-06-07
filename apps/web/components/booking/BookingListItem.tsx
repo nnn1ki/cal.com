@@ -8,7 +8,7 @@ import { getSuccessPageLocationMessage, guessEventLocationType } from "@calcom/a
 import dayjs from "@calcom/dayjs";
 // TODO: Use browser locale, implement Intl in Dayjs maybe?
 import "@calcom/dayjs/locales";
-import { formatTime } from "@calcom/lib/dayjs";
+import { formatDateInRussian, formatTime } from "@calcom/lib/dayjs";
 import { useCopy } from "@calcom/lib/hooks/useCopy";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useGetTheme } from "@calcom/lib/hooks/useTheme";
@@ -251,10 +251,13 @@ function BookingListItem(booking: BookingItemProps) {
   const currentYear = dayjs().year();
   const isDifferentYear = bookingYear !== currentYear;
 
-  const startTime = dayjs(booking.startTime)
-    .tz(userTimeZone)
-    .locale(language)
-    .format(isUpcoming ? (isDifferentYear ? "ddd, D MMM YYYY" : "ddd, D MMM") : "D MMMM YYYY");
+  const startTime = formatDateInRussian(booking.startTime, {
+    timeZone: userTimeZone,
+    weekday: isUpcoming ? "short" : false,
+    month: isUpcoming ? "short" : "long",
+    includeYear: !isUpcoming || isDifferentYear,
+    includeYearSuffix: !isUpcoming,
+  });
 
   // Getting accepted recurring dates to show
   const recurringDates = booking.recurringInfo?.bookings[BookingStatus.ACCEPTED]
@@ -704,7 +707,7 @@ const RecurringBookingsTooltip = ({
                   <p key={key} className={classNames(pastOrCancelled && "line-through")}>
                     {formatTime(aDate, userTimeFormat, userTimeZone)}
                     {" - "}
-                    {dayjs(aDate).locale(language).format("D MMMM YYYY")}
+                    {formatDateInRussian(aDate)}
                   </p>
                 );
               })}>

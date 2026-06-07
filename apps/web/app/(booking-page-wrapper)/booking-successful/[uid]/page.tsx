@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 
 import dayjs from "@calcom/dayjs";
+import { formatDateInRussian } from "@calcom/lib/dayjs";
 import { DecoyBookingSuccessCard } from "~/bookings/components/DecoyBookingSuccessCard";
 import { useDecoyBooking } from "~/bookings/hooks/useDecoyBooking";
 
@@ -23,7 +24,7 @@ export default function BookingSuccessful() {
   const endTime = booking.endTime ? dayjs(booking.endTime) : null;
   const timeZone = booking.booker?.timeZone || booking.host?.timeZone || dayjs.tz.guess();
 
-  const formattedDate = startTime ? startTime.tz(timeZone).format("dddd, MMMM D, YYYY") : "";
+  const formattedDate = startTime ? formatDateInRussian(startTime, { timeZone, weekday: "long" }) : "";
   const formattedTime = startTime ? startTime.tz(timeZone).format("h:mm A") : "";
   const formattedEndTime = endTime ? endTime.tz(timeZone).format("h:mm A") : "";
   const formattedTimeZone = timeZone;

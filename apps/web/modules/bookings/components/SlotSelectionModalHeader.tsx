@@ -6,6 +6,7 @@ import { useTimePreferences } from "@calcom/features/bookings/lib";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import { EventDetailBlocks } from "@calcom/features/bookings/types";
 import type { TimezoneSelectComponentProps } from "@calcom/features/timezone/components/TimezoneSelectComponent";
+import { formatDateInRussian } from "@calcom/lib/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { CURRENT_TIMEZONE } from "@calcom/lib/timezoneConstants";
 import { Button } from "@calcom/ui/components/button";
@@ -64,7 +65,7 @@ export const SlotSelectionModalHeader = ({
   timeZones,
   selectedDate,
 }: SlotSelectionModalHeaderProps): JSX.Element => {
-  const { i18n } = useLocale();
+  useLocale();
   const [setTimezone] = useTimePreferences((state) => [state.setTimezone]);
   const [timezone, setBookerStoreTimezone] = useBookerStoreContext(
     (state) => [state.timezone, state.setTimezone],
@@ -79,11 +80,11 @@ export const SlotSelectionModalHeader = ({
     if (!selectedDate) return { dayOfWeek: "", fullDate: "" };
 
     const date = dayjs(selectedDate);
-    const dayOfWeek = date.locale(i18n.language).format("dddd");
-    const fullDate = date.locale(i18n.language).format("MMMM D, YYYY");
+    const dayOfWeek = date.locale("ru").format("dddd");
+    const fullDate = formatDateInRussian(date);
 
     return { dayOfWeek, fullDate };
-  }, [selectedDate, i18n.language]);
+  }, [selectedDate]);
 
   return (
     <div className="two-step-slot-selection-modal-header sticky top-0 z-10 -mx-4 mt-0 mb-4 flex flex-col border-subtle border-b bg-default px-8 pb-4">

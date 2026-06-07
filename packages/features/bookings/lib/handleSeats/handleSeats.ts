@@ -166,6 +166,7 @@ const handleSeats = async (
     traceContext,
     actionSource,
     impersonatedByUserUuid,
+    reqUserId,
     deps: { bookingEventHandler },
   } = newSeatedBookingObject;
   // TODO: We could allow doing more things to support good dry run for seats
@@ -211,8 +212,15 @@ const handleSeats = async (
     return;
   }
 
+  const isOwnerBookingSelf =
+    reqUserId === seatedBooking.userId &&
+    !!seatedBooking.user?.email &&
+    bookerEmail === seatedBooking.user.email &&
+    invitee[0]?.email === seatedBooking.user.email;
+
   // See if attendee is already signed up for timeslot
   if (
+    !isOwnerBookingSelf &&
     seatedBooking.attendees.find((attendee) => {
       return attendee.email === invitee[0].email;
     }) &&

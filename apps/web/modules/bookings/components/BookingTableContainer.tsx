@@ -1,6 +1,7 @@
 "use client";
 
 import dayjs from "@calcom/dayjs";
+import { formatDateInRussian } from "@calcom/lib/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
@@ -52,7 +53,7 @@ function BookingTableInner({
   isFetched,
   isFetchingNextPage,
 }: BookingTableInnerProps) {
-  const { t, i18n } = useLocale();
+  const { t } = useLocale();
   const user = useMeQuery().data;
   const router = useRouter();
   const { currentTableDate, setCurrentTableDate } = useCurrentBookingTableDate();
@@ -94,7 +95,7 @@ function BookingTableInner({
           date={currentTableDate.toDate()}
           onDatesChange={(date) => setCurrentTableDate(dayjs(date).startOf("day"))}
           minDate={null}
-          label={currentTableDate.locale(i18n.language).format("D MMMM YYYY")}
+          label={formatDateInRussian(currentTableDate)}
         />
 
         <Button color="secondary" onClick={() => setCurrentTableDate(dayjs().startOf("day"))} className="capitalize">

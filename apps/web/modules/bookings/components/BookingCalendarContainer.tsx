@@ -1,6 +1,7 @@
 "use client";
 
 import dayjs from "@calcom/dayjs";
+import { formatDateInRussian } from "@calcom/lib/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
@@ -124,7 +125,7 @@ function BookingCalendarInner({
             date={currentTableDate.toDate()}
             onDatesChange={(date) => setCurrentTableDate(dayjs(date).startOf("day"))}
             minDate={null}
-            label={currentTableDate.format("D MMMM YYYY")}
+            label={formatDateInRussian(currentTableDate)}
           />
           {allowedFilterIds.length > 0 && <DataTableFilters.FilterBar table={table} />}
         </div>

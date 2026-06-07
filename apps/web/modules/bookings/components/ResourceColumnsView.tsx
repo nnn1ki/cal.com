@@ -119,11 +119,11 @@ export const ResourceColumnsView = ({
                       description={resource.description}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-subtle">
+                  {/* <p className="mt-1 text-xs text-subtle">
                     {selectedSlots.size > 0
                       ? t("number_selected", { count: selectedSlots.size })
                       : selectedDay.locale(i18n.language).format("D MMM")}
-                  </p>
+                  </p> */}
                 </div>
               </header>
               <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
@@ -169,7 +169,7 @@ export const ResourceColumnsView = ({
                             {dayjs(slot.time).tz(timezone).locale(i18n.language).format(timeFormat)}
                           </span>
                           <div className="flex items-center gap-2 text-xs text-subtle">
-                            <span>{eventDuration}m</span>
+                            {/* <span>{eventDuration}m</span> */}
                             {hasSeatCapacity && (
                               <span className="flex items-center gap-1">
                                 <span

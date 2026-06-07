@@ -7,6 +7,7 @@ import { useIsEmbed } from "@calcom/embed-core/embed-iframe";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import { useInitializeWeekStart } from "@calcom/features/bookings/hooks/useInitializeWeekStart";
 import { WEBAPP_URL } from "@calcom/lib/constants";
+import { formatDateInRussian } from "@calcom/lib/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import { Button } from "@calcom/ui/components/button";
@@ -35,7 +36,7 @@ export function Header({
   isMyLink: boolean;
   isCalendarView?: boolean;
 }) {
-  const { t, i18n } = useLocale();
+  const { t } = useLocale();
   const isEmbed = useIsEmbed();
   const isPlatform = useIsPlatform();
   const [layout, setLayout] = useBookerStoreContext((state) => [state.layout, state.setLayout], shallow);
@@ -103,7 +104,7 @@ export function Header({
   const FormattedSelectedDateRange = () => {
     return (
       <h3 className="min-w-[150px] text-base font-semibold leading-4">
-        {selectedDate.locale(i18n.language).format("D MMMM YYYY")}
+        {formatDateInRussian(selectedDate)}
       </h3>
     );
   };

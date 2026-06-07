@@ -5,6 +5,7 @@ import {
   ATTENDEE_PHONE_NUMBER_FIELD,
   shouldShowFieldInCustomResponses,
 } from "@calcom/lib/bookings/SystemField";
+import { formatDateInRussian } from "@calcom/lib/dayjs";
 import { formatPrice } from "@calcom/lib/currencyConversions";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import { getUserAvatarUrl } from "@calcom/lib/getAvatarUrl";
@@ -542,7 +543,7 @@ function DisplayTimestamp({
 
   return (
     <>
-      <span>{start.format("dddd, MMMM D, YYYY")}</span>
+      <span>{formatDateInRussian(start, { timeZone, weekday: "long" })}</span>
       <span>
         {start.format("h:mma")} - {end.format("h:mma")}
       </span>
