@@ -22,15 +22,10 @@ export const daysInMonth = (date: Date | Dayjs) => {
  */
 export const formatTime = (
   date: string | Date | Dayjs,
-  timeFormat?: number | null,
+  _timeFormat?: number | null,
   timeZone?: string | null
 ) => {
-  // console.log(timeZone, date);
-  return timeZone
-    ? dayjs(date)
-        .tz(timeZone)
-        .format(timeFormat === 12 ? "h:mma" : "HH:mm")
-    : dayjs(date).format(timeFormat === 12 ? "h:mma" : "HH:mm");
+  return timeZone ? dayjs(date).tz(timeZone).format("HH:mm") : dayjs(date).format("HH:mm");
 };
 
 /**
@@ -60,7 +55,9 @@ export const formatLocalizedDateTime = (
   locale: string | undefined = undefined
 ) => {
   const theDate = date instanceof dayjs ? (date as Dayjs).toDate() : (date as Date);
-  return Intl.DateTimeFormat(locale, options).format(theDate);
+  const normalizedOptions =
+    options.timeStyle || options.hour || options.minute ? { ...options, hour12: false } : options;
+  return Intl.DateTimeFormat(locale, normalizedOptions).format(theDate);
 };
 
 /**
@@ -84,7 +81,7 @@ export const formatToLocalizedTime = ({
   date,
   locale = undefined,
   timeStyle = "short",
-  hour12 = undefined,
+  hour12: _hour12 = false,
   timeZone,
 }: {
   date: Date | Dayjs;
@@ -92,7 +89,7 @@ export const formatToLocalizedTime = ({
   timeStyle?: Intl.DateTimeFormatOptions["timeStyle"];
   hour12?: Intl.DateTimeFormatOptions["hour12"];
   timeZone?: string;
-}) => formatLocalizedDateTime(date, { timeStyle, hour12, timeZone }, locale);
+}) => formatLocalizedDateTime(date, { timeStyle, hour12: false, timeZone }, locale);
 
 /**
  * Returns a translated timezone based on the given Date object and

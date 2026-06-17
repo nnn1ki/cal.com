@@ -2374,6 +2374,8 @@ async function handler(
       }
       if (!noEmail) {
         if (!isDryRun && !(eventType.seatsPerTimeSlot && rescheduleUid)) {
+          const shouldSendBatchSummaryOnly = reqBody.metadata?._bookingBatchSendSummary === "1";
+
           await emailsAndSmsHandler.send({
             action: BookingActionMap.confirmed,
             data: {
@@ -2387,6 +2389,7 @@ async function handler(
               additionalInformation,
               additionalNotes,
               customInputs,
+              attendeeEmailDisabled: shouldSendBatchSummaryOnly,
             },
           });
           bookingEmailsAndSmsTaskerAction = BookingActionMap.confirmed;

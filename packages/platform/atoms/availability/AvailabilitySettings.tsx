@@ -233,9 +233,9 @@ const DateOverride = ({
           </span>
         </Tooltip>
       </h3>
-      <p className={cn("text-subtle mb-4 text-sm", classNames?.description)}>
+      {/* <p className={cn("text-subtle mb-4 text-sm", classNames?.description)}>
         {t("date_overrides_subtitle")}
-      </p>
+      </p> */}
       <div className="stack-y-2">
         <DateOverrideList
           excludedDates={excludedDates}

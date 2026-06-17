@@ -1,11 +1,10 @@
-import type { TFunction } from "i18next";
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { FieldError, FieldErrors } from "react-hook-form";
-
+import process from "node:process";
 import { getPaymentAppData } from "@calcom/app-store/_utils/payments/getPaymentAppData";
 import { useIsPlatformBookerEmbed } from "@calcom/atoms/hooks/useIsPlatformBookerEmbed";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
+import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
+import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
+import { formatEventFromTime } from "@calcom/features/bookings/Booker/utils/dates";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import ServerTrans from "@calcom/lib/components/ServerTrans";
 import { APP_NAME, WEBSITE_PRIVACY_POLICY_URL, WEBSITE_TERMS_URL } from "@calcom/lib/constants";
@@ -15,12 +14,16 @@ import type { TimeFormat } from "@calcom/lib/timeFormat";
 import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
 import { EmptyScreen } from "@calcom/ui/components/empty-screen";
-import { Form } from "@calcom/ui/components/form";
-
-import { formatEventFromTime } from "@calcom/features/bookings/Booker/utils/dates";
-import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
-import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
-import type { IUseBookingErrors, IUseBookingLoadingStates } from "../../hooks/useBookings";
+import { Form, Label } from "@calcom/ui/components/form";
+import type { TFunction } from "i18next";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import type { FieldError, FieldErrors } from "react-hook-form";
+import type {
+  IUseBookingErrors,
+  IUseBookingLoadingStates,
+  OwnerSeatSelection,
+} from "../../hooks/useBookings";
 import { BookingFields } from "./BookingFields";
 import { FormSkeleton } from "./Skeleton";
 
@@ -44,6 +47,9 @@ type BookEventFormProps = {
     backButton?: string;
   };
   timeslot: string | null;
+  ownerSeatSelection?: OwnerSeatSelection;
+  ownerSeatCount?: number;
+  setOwnerSeatCount?: (seatCount: number) => void;
 };
 
 export const BookEventForm = ({
@@ -64,6 +70,9 @@ export const BookEventForm = ({
   confirmButtonDisabled,
   classNames,
   timeslot,
+  ownerSeatSelection,
+  ownerSeatCount = 1,
+  setOwnerSeatCount,
 }: Omit<BookEventFormProps, "event"> & {
   eventQuery: {
     isError: boolean;
@@ -170,6 +179,28 @@ export const BookEventForm = ({
           isPaidEvent={isPaidEvent}
           paymentCurrency={paymentCurrency}
         />
+        {ownerSeatSelection?.enabled && setOwnerSeatCount ? (
+          <div className="mt-6">
+            <Label className="text-emphasis" htmlFor="owner-seat-count">
+              {t("owner_seat_count_label")}
+            </Label>
+            <select
+              id="owner-seat-count"
+              value={String(ownerSeatCount)}
+              onChange={(event) => setOwnerSeatCount(Number(event.target.value))}
+              className="border-subtle bg-default text-default mt-2 block h-10 w-full rounded-md border px-3 text-sm">
+              {Array.from({ length: ownerSeatSelection.maxSeatCount }, (_, index) => {
+                const seatCount = index + 1;
+
+                return (
+                  <option key={seatCount} value={seatCount}>
+                    {t("owner_seat_count_option", { count: seatCount })}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        ) : null}
         {errors.hasFormErrors || errors.hasDataErrors ? (
           <div data-testid="booking-fail">
             <Alert

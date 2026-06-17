@@ -25,6 +25,11 @@ import { Price } from "@calcom/features/bookings/components/event-meta/Price";
 import { getCalendarLinks, CalendarLinkType } from "@calcom/features/bookings/lib/getCalendarLinks";
 import { RATING_OPTIONS, validateRating } from "@calcom/features/bookings/lib/rating";
 import { isWithinMinimumRescheduleNotice as isWithinMinimumRescheduleNoticeUtil } from "@calcom/features/bookings/lib/reschedule/isWithinMinimumRescheduleNotice";
+import {
+  parseSuccessBookingCartSummary,
+  SUCCESS_BOOKING_CART_STORAGE_KEY,
+  type SuccessBookingCartSummary,
+} from "@calcom/features/bookings/lib/success-booking-cart-storage";
 import type { nameObjectSchema } from "@calcom/features/eventtypes/lib/eventNaming";
 import { getEventName } from "@calcom/features/eventtypes/lib/eventNaming";
 import { shouldShowFieldInCustomResponses } from "@calcom/lib/bookings/SystemField";
@@ -92,6 +97,8 @@ const querySchema = z.object({
   redirect_status: z.string().optional(),
 });
 
+const stripBookingTitle = (value: string) => value.replace(/\s+between\s+.*$/i, "").trim();
+
 const useBrandColors = ({
   brandColor,
   darkBrandColor,
@@ -107,7 +114,7 @@ const useBrandColors = ({
 };
 
 export default function Success(props: PageProps) {
-  const { t } = useLocale();
+  const { t, i18n } = useLocale();
   const router = useRouter();
   const routerQuery = useRouterQuery();
   const pathname = usePathname();
@@ -176,6 +183,9 @@ export default function Success(props: PageProps) {
   const isHost = props.isLoggedInUserHost;
 
   const [showUtmParams, setShowUtmParams] = useState(false);
+  const [successBookingCartSummary, setSuccessBookingCartSummary] = useState<SuccessBookingCartSummary | null>(
+    null
+  );
 
   const utmParams = bookingInfo.tracking;
 
@@ -304,6 +314,24 @@ export default function Success(props: PageProps) {
   }, [eventType, needsConfirmation]);
 
   useEffect(() => {
+    if (!isSuccessBookingPage) {
+      setSuccessBookingCartSummary(null);
+      return;
+    }
+
+    const storedSummary = parseSuccessBookingCartSummary(
+      localStorage.getItem(SUCCESS_BOOKING_CART_STORAGE_KEY)
+    );
+
+    if (storedSummary?.primaryBookingUid === bookingInfo.uid && storedSummary.items.length > 1) {
+      setSuccessBookingCartSummary(storedSummary);
+      return;
+    }
+
+    setSuccessBookingCartSummary(null);
+  }, [bookingInfo.uid, isSuccessBookingPage]);
+
+  useEffect(() => {
     setCalculatedDuration(dayjs(bookingInfo.endTime).diff(dayjs(bookingInfo.startTime), "minutes"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -402,6 +430,20 @@ export default function Success(props: PageProps) {
 
   const canCancel = !eventType?.disableCancelling;
   const canReschedule = !eventType?.disableRescheduling;
+  const successBookingCartGroups = successBookingCartSummary?.items.reduce(
+    (accumulator, item) => {
+      const dateLabel = formatToLocalizedDate(dayjs.utc(item.startTime), i18n.language, "full", tz);
+
+      if (!accumulator[dateLabel]) {
+        accumulator[dateLabel] = [];
+      }
+
+      accumulator[dateLabel].push(item);
+
+      return accumulator;
+    },
+    {} as Record<string, SuccessBookingCartSummary["items"]>
+  );
 
   // Check if reschedule should be disabled due to minimum reschedule notice
   // Use server-side computed isHost prop instead of client-side computation
@@ -635,6 +677,44 @@ export default function Success(props: PageProps) {
                             tz={tz}
                           />
                         </div>
+                        {successBookingCartGroups && (
+                          <>
+                            <div className="font-medium">{t("what")}</div>
+                            <div className="col-span-2 mb-6 last:mb-0" data-testid="success-booking-cart">
+                              <div className="space-y-4">
+                                {Object.entries(successBookingCartGroups).map(([dateLabel, items]) => (
+                                  <div key={dateLabel}>
+                                    <div className="text-emphasis mb-2 text-sm font-semibold">{dateLabel}</div>
+                                    <div className="space-y-2">
+                                      {items.map((item) => (
+                                        <div
+                                          key={`${item.uid}-${item.seatReferenceUid ?? "booking"}`}
+                                          className="border-subtle rounded-md border px-3 py-2">
+                                          <div className="font-medium">{stripBookingTitle(item.title)}</div>
+                                          <div className="text-subtle text-sm">
+                                            {formatToLocalizedTime({
+                                              date: dayjs.utc(item.startTime),
+                                              locale: i18n.language,
+                                              hour12: !is24h,
+                                              timeZone: tz,
+                                            })}{" "}
+                                            -{" "}
+                                            {formatToLocalizedTime({
+                                              date: dayjs.utc(item.endTime),
+                                              locale: i18n.language,
+                                              hour12: !is24h,
+                                              timeZone: tz,
+                                            })}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
                         {/* {(bookingInfo?.user || bookingInfo?.attendees) && (
                           <>
                             <div className="font-medium">{t("who")}</div>

@@ -11,6 +11,7 @@ import {
   useBookerResizeAnimation,
 } from "@calcom/features/bookings/Booker/config";
 import framerFeatures from "@calcom/features/bookings/Booker/framer-features";
+import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
 import type { BookerProps } from "@calcom/features/bookings/Booker/types";
 import { isBookingDryRun } from "@calcom/features/bookings/Booker/utils/isBookingDryRun";
 import { isTimeSlotAvailable } from "@calcom/features/bookings/Booker/utils/isTimeslotAvailable";
@@ -57,7 +58,6 @@ import { ResourceColumnsView } from "./ResourceColumnsView";
 import { SlotSelectionModalHeader } from "./SlotSelectionModalHeader";
 import { NotFound } from "./Unavailable";
 import { VerifyCodeDialog } from "./VerifyCodeDialog";
-import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
 
 const BookerComponent = ({
   username,
@@ -177,7 +177,10 @@ const BookerComponent = ({
     expiryTime,
     instantVideoMeetingUrl,
     instantConnectCooldownMs,
+    ownerSeatCount,
+    ownerSeatSelection,
     selectedBookingEntries = [],
+    setOwnerSeatCount,
   } = bookings;
 
   const watchedCfToken = bookingForm.watch("cfToken");
@@ -371,6 +374,9 @@ const BookerComponent = ({
           confirmButton: customClassNames?.confirmStep?.confirmButton,
           backButton: customClassNames?.confirmStep?.backButton,
         }}
+        ownerSeatSelection={ownerSeatSelection}
+        ownerSeatCount={ownerSeatCount}
+        setOwnerSeatCount={setOwnerSeatCount}
         isPlatform={isPlatform}>
         {!isPlatform && (
           <RedirectToInstantMeetingModal
@@ -399,10 +405,13 @@ const BookerComponent = ({
     handleVerifyEmail,
     key,
     loadingStates,
+    ownerSeatCount,
+    ownerSeatSelection,
     onGoBackInstantMeeting,
     renderConfirmNotVerifyEmailButtonCond,
     seatedEventData,
     setSeatedEventData,
+    setOwnerSeatCount,
     setSelectedTimeslot,
     setSelectedDatesAndTimes,
     handleBookingFormCancel,

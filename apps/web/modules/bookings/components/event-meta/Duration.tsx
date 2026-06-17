@@ -93,7 +93,7 @@ export const EventDuration = ({
     return <>{getDurationFormatted(event.length, t)}</>;
 
   const durations = event?.metadata?.multipleDuration || [15, 30, 60, 90];
-  const hideDurationSelector = event?.metadata?.hideDurationSelectorInBookingPage;
+  const hideDurationSelector = state === "booking" || event?.metadata?.hideDurationSelectorInBookingPage;
 
   // When duration selector is hidden, show only the selected/default duration as text
   // URL params can still set the duration, but the user cannot change it via UI
@@ -115,9 +115,7 @@ export const EventDuration = ({
         className="bg-default no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md p-1"
         onScroll={(e) => calculateScroll(e)}
         ref={ref}>
-        {durations
-          .filter((dur) => state !== "booking" || dur === selectedDuration)
-          .map((duration, index) => (
+        {durations.map((duration, index) => (
             <li
               data-testId={`multiple-choice-${duration}mins`}
               data-active={selectedDuration === duration ? "true" : "false"}

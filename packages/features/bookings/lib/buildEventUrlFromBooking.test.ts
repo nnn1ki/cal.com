@@ -55,7 +55,7 @@ describe("buildEventUrlFromBooking", () => {
         },
         dynamicGroupSlugRef: "john+jane",
       };
-      const expectedUrl = `${WEBSITE_URL}/john+jane/30min`;
+      const expectedUrl = `${WEBSITE_URL}/john%2Bjane/30min`;
       const result = await buildEventUrlFromBooking(booking);
       expect(result).toBe(expectedUrl);
     });
@@ -124,7 +124,7 @@ describe("buildEventUrlFromBooking", () => {
         },
         dynamicGroupSlugRef: "john+jane",
       };
-      const expectedUrl = `${orgOrigin}/john+jane/30min`;
+      const expectedUrl = `${orgOrigin}/john%2Bjane/30min`;
       const result = await buildEventUrlFromBooking(booking);
       expect(result).toBe(expectedUrl);
     });
@@ -144,6 +144,25 @@ describe("buildEventUrlFromBooking", () => {
         dynamicGroupSlugRef: null,
       };
       const expectedUrl = `${orgOrigin}/john/30min`;
+      const result = await buildEventUrlFromBooking(booking);
+      expect(result).toBe(expectedUrl);
+    });
+
+    it("should encode non-ascii usernames for redirect-safe urls", async () => {
+      const booking = {
+        eventType: {
+          slug: "30min",
+          team: null,
+        },
+        profileEnrichedBookingUser: {
+          profile: {
+            organizationId,
+            username: "Локация",
+          },
+        },
+        dynamicGroupSlugRef: null,
+      };
+      const expectedUrl = `${orgOrigin}/%D0%9B%D0%BE%D0%BA%D0%B0%D1%86%D0%B8%D1%8F/30min`;
       const result = await buildEventUrlFromBooking(booking);
       expect(result).toBe(expectedUrl);
     });

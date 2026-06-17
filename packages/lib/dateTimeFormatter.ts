@@ -52,18 +52,18 @@ function getFormatter(locale: string, options: Intl.DateTimeFormatOptions): Intl
 }
 
 function buildIntlOptions(options: DateTimeFormatOptions, includeMonth = true): Intl.DateTimeFormatOptions {
-  const { timeZone, dateStyle, timeStyle, month, hour12 } = options;
+  const { timeZone, dateStyle, timeStyle, month } = options;
   return {
     ...(timeZone && { timeZone }),
     ...(dateStyle && { dateStyle }),
     ...(timeStyle && { timeStyle }),
     ...(includeMonth && month && { month }),
-    ...(hour12 !== undefined && { hour12 }),
+    ...(timeStyle && { hour12: false }),
   };
 }
 
 function formatWithDayjs(date: Date, options: DateTimeFormatOptions): string {
-  const { locale, dateStyle, timeStyle, month, hour12, timeZone } = options;
+  const { locale, dateStyle, timeStyle, month, timeZone } = options;
   const dayjsDate = timeZone ? dayjs(date).tz(timeZone).locale(locale) : dayjs(date).locale(locale);
 
   if (month) {
@@ -73,7 +73,7 @@ function formatWithDayjs(date: Date, options: DateTimeFormatOptions): string {
 
   const parts: string[] = [];
   if (dateStyle) parts.push(DATE_FORMATS[dateStyle]);
-  if (timeStyle) parts.push(hour12 ? "h:mm A" : "HH:mm");
+  if (timeStyle) parts.push("HH:mm");
 
   return dayjsDate.format(parts.join(" ") || "YYYY-MM-DD HH:mm");
 }

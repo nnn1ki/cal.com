@@ -3,6 +3,7 @@ export { AdminOAuthClientNotificationEmail } from "./AdminOAuthClientNotificatio
 export { AdminOrganizationNotificationEmail } from "./AdminOrganizationNotificationEmail";
 export { AttendeeAddGuestsEmail } from "./AttendeeAddGuestsEmail";
 export { AttendeeAwaitingPaymentEmail } from "./AttendeeAwaitingPaymentEmail";
+export { AttendeeBatchScheduledSummaryEmail } from "./AttendeeBatchScheduledSummaryEmail";
 export { AttendeeCancelledEmail } from "./AttendeeCancelledEmail";
 export { AttendeeCancelledSeatEmail } from "./AttendeeCancelledSeatEmail";
 export { AttendeeDeclinedEmail } from "./AttendeeDeclinedEmail";

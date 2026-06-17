@@ -1,9 +1,12 @@
 import { BookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import { getQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
+import { createBatchBookingSummaryEmail } from "@calcom/features/bookings/lib/create-batch-booking-summary-email";
 import { createBooking } from "@calcom/features/bookings/lib/create-booking";
+import { SUCCESS_BOOKING_CART_STORAGE_KEY } from "@calcom/features/bookings/lib/success-booking-cart-storage";
+import { localStorage } from "@calcom/lib/webstorage";
 import { bookingMetadataSchema } from "@calcom/prisma/zod-utils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useBookings } from "./useBookings";
@@ -18,6 +21,10 @@ vi.mock("@calcom/features/bookings/Booker/utils/query-param", () => ({
 
 vi.mock("@calcom/features/bookings/lib/create-booking", () => ({
   createBooking: vi.fn(),
+}));
+
+vi.mock("@calcom/features/bookings/lib/create-batch-booking-summary-email", () => ({
+  createBatchBookingSummaryEmail: vi.fn(),
 }));
 
 vi.mock("@calcom/features/bookings/lib/create-instant-booking", () => ({
@@ -44,9 +51,7 @@ vi.mock("@calcom/ui/components/toast", () => ({
 }));
 
 vi.mock("@calcom/atoms/hooks/bookings/useHandleBookEvent", () => ({
-  useHandleBookEvent: () => ({
-    handleBookEvent: vi.fn(),
-  }),
+  useHandleBookEvent: () => vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -145,6 +150,12 @@ const createMockStore = (isInstantMeeting: boolean) => {
     rescheduleUid: null;
     rescheduledBy: null;
     bookingData: null;
+    seatedEventData: {
+      seatsPerTimeSlot?: number | null;
+      attendees?: number;
+      bookingUid?: string;
+      showAvailableSeatsCount?: boolean | null;
+    };
     selectedTimeslot: string | null;
     selectedDatesAndTimes: { [key: string]: { [key: string]: string[] } } | null;
     selectedDuration: null;
@@ -166,6 +177,7 @@ const createMockStore = (isInstantMeeting: boolean) => {
     rescheduleUid: null,
     rescheduledBy: null,
     bookingData: null,
+    seatedEventData: {},
     selectedTimeslot: null,
     selectedDatesAndTimes: null,
     selectedDuration: null,
@@ -198,6 +210,9 @@ const mockEvent = {
     subsetOfHosts: [],
     isDynamic: false,
     subsetOfUsers: [],
+    owner: null,
+    seatsPerTimeSlot: null,
+    title: "Test Event",
   },
   isSuccess: true,
   isPending: false,
@@ -221,6 +236,7 @@ const createTestWrapper = (mockStore: ReturnType<typeof createMockStore>) => {
 describe("useBookings - Instant Booking Query", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(createBatchBookingSummaryEmail).mockResolvedValue({ success: true });
     const mockUseQueryFn = getMockUseQuery();
     mockUseQueryFn.mockReturnValue({
       data: undefined,
@@ -416,5 +432,127 @@ describe("useBookings - Instant Booking Query", () => {
         })
       );
     });
+  });
+
+  it("should let the owner reserve multiple seats for the same seated slot in one submit", async () => {
+    vi.mocked(getQueryParam).mockReturnValue(null);
+    vi.mocked(createBooking).mockResolvedValue({
+      uid: "booking-uid",
+      title: "Owner booking",
+      startTime: "2024-01-01T10:00:00.000Z",
+      endTime: "2024-01-01T10:30:00.000Z",
+      eventTypeId: 1,
+      paymentRequired: false,
+      isDryRun: false,
+      user: { email: "owner@example.com", timeZone: "UTC" },
+      attendees: [],
+      status: "ACCEPTED",
+    } as never);
+
+    const mockStore = createMockStore(false);
+    mockStore.getState().selectedTimeslot = "2024-01-01T10:00:00.000Z";
+    mockStore.getState().seatedEventData = {
+      seatsPerTimeSlot: 12,
+      attendees: 3,
+    };
+
+    const bookingForm = {
+      watch: vi.fn((path?: string) => (path === "responses.email" ? "owner@example.com" : undefined)),
+      getValues: vi.fn((path?: string) => {
+        if (path === "responses.name") return "Owner";
+        if (path === "responses.email") return "owner@example.com";
+        return {
+          responses: {
+            name: "Owner",
+            email: "owner@example.com",
+          },
+        };
+      }),
+      clearErrors: vi.fn(),
+    };
+
+    const { result } = renderHook(
+      () =>
+        useBookings({
+          event: {
+            ...mockEvent,
+            data: {
+              ...mockEvent.data,
+              owner: {
+                id: 99,
+                username: "owner",
+                name: "Owner",
+                avatarUrl: null,
+                weekStart: "Sunday",
+                theme: null,
+                defaultScheduleId: null,
+                brandColor: null,
+                darkBrandColor: null,
+                metadata: null,
+                organization: null,
+                nonProfileUsername: "owner",
+                profile: {
+                  id: null,
+                  upId: "usr-99",
+                  username: "owner",
+                  organizationId: null,
+                  organization: null,
+                },
+              },
+              seatsPerTimeSlot: 12,
+            },
+          },
+          currentUser: {
+            id: 99,
+            email: "owner@example.com",
+          },
+          bookingForm: bookingForm as never,
+          metadata: {},
+        }),
+      {
+        wrapper: createTestWrapper(mockStore),
+      }
+    );
+
+    act(() => {
+      result.current.setOwnerSeatCount(4);
+    });
+
+    result.current.handleBookEvent();
+
+    await waitFor(() => {
+      expect(createBooking).toHaveBeenCalledTimes(4);
+    });
+
+    expect(createBooking).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        start: "2024-01-01T10:00:00+00:00",
+        metadata: expect.objectContaining({ _ownerSeatBatchIndex: "1" }),
+      })
+    );
+    expect(createBooking).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        start: "2024-01-01T10:00:00+00:00",
+        metadata: expect.objectContaining({ _ownerSeatBatchIndex: "4" }),
+      })
+    );
+
+    expect(createBatchBookingSummaryEmail).toHaveBeenCalledWith({
+      attendeeEmail: "owner@example.com",
+      batchGroupId: expect.any(String),
+      bookingReferences: [
+        { bookingUid: "booking-uid", seatReferenceUid: null },
+        { bookingUid: "booking-uid", seatReferenceUid: null },
+        { bookingUid: "booking-uid", seatReferenceUid: null },
+        { bookingUid: "booking-uid", seatReferenceUid: null },
+      ],
+    });
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      SUCCESS_BOOKING_CART_STORAGE_KEY,
+      expect.stringContaining('"primaryBookingUid":"booking-uid"')
+    );
   });
 });

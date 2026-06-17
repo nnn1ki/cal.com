@@ -55,6 +55,7 @@ type ConfirmedEmailAndSmsPayload = EmailAndSmsPayload & {
   additionalInformation: AdditionalInformation;
   additionalNotes: string | null | undefined;
   customInputs: Prisma.JsonObject | null | undefined;
+  attendeeEmailDisabled?: boolean;
 };
 
 type RequestedEmailAndSmsPayload = EmailAndSmsPayload & {
@@ -271,6 +272,7 @@ export class BookingEmailSmsHandler {
       additionalInformation,
       additionalNotes,
       customInputs,
+      attendeeEmailDisabled,
     } = data;
 
     let isHostConfirmationEmailsDisabled = metadata?.disableStandardEmails?.confirmation?.host || false;
@@ -282,6 +284,9 @@ export class BookingEmailSmsHandler {
       metadata?.disableStandardEmails?.confirmation?.attendee || false;
     if (isAttendeeConfirmationEmailDisabled) {
       isAttendeeConfirmationEmailDisabled = allowDisablingAttendeeConfirmationEmails(workflows);
+    }
+    if (attendeeEmailDisabled) {
+      isAttendeeConfirmationEmailDisabled = true;
     }
 
     const { sendScheduledEmailsAndSMS } = await import("@calcom/emails/email-manager");

@@ -11,13 +11,15 @@ import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/
 import type { BookableResource } from "@calcom/features/bookings/Booker/types";
 import { getQueryParam, updateQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
 import { mapBookingToMutationInput } from "@calcom/features/bookings/lib";
-import type { BookingOptions } from "@calcom/features/bookings/lib/client/booking-event-form/booking-to-mutation-input-mapper";
 import { useBookingSuccessRedirect } from "@calcom/features/bookings/lib/bookingSuccessRedirect";
+import type { BookingOptions } from "@calcom/features/bookings/lib/client/booking-event-form/booking-to-mutation-input-mapper";
 import { storeDecoyBooking } from "@calcom/features/bookings/lib/client/decoyBookingStore";
 import { createBooking } from "@calcom/features/bookings/lib/create-booking";
+import { createBatchBookingSummaryEmail } from "@calcom/features/bookings/lib/create-batch-booking-summary-email";
 import { createInstantBooking } from "@calcom/features/bookings/lib/create-instant-booking";
 import { createRecurringBooking } from "@calcom/features/bookings/lib/create-recurring-booking";
 import type { GetBookingType } from "@calcom/features/bookings/lib/get-booking";
+import { SUCCESS_BOOKING_CART_STORAGE_KEY } from "@calcom/features/bookings/lib/success-booking-cart-storage";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import { getFullName } from "@calcom/features/form-builder/utils";
 import { ErrorCode } from "@calcom/lib/errorCodes";
@@ -39,6 +41,7 @@ export interface IUseBookings {
           BookerEvent,
           | "id"
           | "slug"
+          | "title"
           | "subsetOfHosts"
           | "requiresConfirmation"
           | "isDynamic"
@@ -48,6 +51,8 @@ export interface IUseBookings {
           | "length"
           | "recurringEvent"
           | "schedulingType"
+          | "seatsPerTimeSlot"
+          | "owner"
         > & {
           subsetOfUsers: Pick<
             BookerEvent["subsetOfUsers"][number],
@@ -55,6 +60,10 @@ export interface IUseBookings {
           >[];
         })
       | null;
+  };
+  currentUser?: {
+    id?: number | null;
+    email?: string | null;
   };
   hashedLink?: string | null;
   bookingForm: UseBookingFormReturnType["bookingForm"];
@@ -232,6 +241,12 @@ export interface IUseBookingErrors {
   hasDataErrors: boolean;
   dataErrors: unknown;
 }
+
+export type OwnerSeatSelection = {
+  enabled: boolean;
+  maxSeatCount: number;
+};
+
 export type UseBookingsReturnType = ReturnType<typeof useBookings>;
 
 const STORAGE_KEY = "instantBookingData";
@@ -288,6 +303,7 @@ const storeInLocalStorage = ({
 
 export const useBookings = ({
   event,
+  currentUser,
   hashedLink,
   bookingForm,
   metadata,
@@ -321,6 +337,7 @@ export const useBookings = ({
     (state) => [state.bookingData, state.setBookingData],
     shallow
   );
+  const seatedEventData = useBookerStoreContext((state) => state.seatedEventData);
   const timeslot = useBookerStoreContext((state) => state.selectedTimeslot);
   const { i18n, t } = useLocale();
   const bookingSuccessRedirect = useBookingSuccessRedirect();
@@ -329,6 +346,7 @@ export const useBookings = ({
   const [instantMeetingTokenExpiryTime, setExpiryTime] = useState<Date | undefined>();
   const [instantVideoMeetingUrl, setInstantVideoMeetingUrl] = useState<string | undefined>();
   const [isBatchBookingPending, setIsBatchBookingPending] = useState(false);
+  const [ownerSeatCount, setOwnerSeatCount] = useState(1);
   const duration = useBookerStoreContext((state) => state.selectedDuration);
   const { timezone } = useBookerTime();
 
@@ -367,6 +385,56 @@ export const useBookings = ({
       selectedDuration,
     });
   }, [allEventTypes, selectedDatesAndTimes, selectedDuration]);
+
+  const formEmail =
+    typeof bookingForm.watch === "function" ? bookingForm.watch("responses.email") : undefined;
+
+  const ownerSeatSelection = useMemo<OwnerSeatSelection>(() => {
+    const ownerId = event.data?.owner?.id;
+    const ownerEmail = currentUser?.email;
+    const totalSeats = seatedEventData.seatsPerTimeSlot ?? event.data?.seatsPerTimeSlot ?? null;
+    const bookedSeats = seatedEventData.attendees ?? 0;
+    const remainingSeats = totalSeats ? Math.max(totalSeats - bookedSeats, 0) : 0;
+    const hasSingleSelection =
+      selectedBookingEntries.length === 1 || (!selectedBookingEntries.length && !!timeslot);
+
+    const enabled =
+      !!currentUser?.id &&
+      !!ownerId &&
+      currentUser.id === ownerId &&
+      !!ownerEmail &&
+      formEmail === ownerEmail &&
+      !!totalSeats &&
+      remainingSeats > 1 &&
+      hasSingleSelection &&
+      !isRescheduling;
+
+    return {
+      enabled,
+      maxSeatCount: enabled ? remainingSeats : 1,
+    };
+  }, [
+    currentUser?.email,
+    currentUser?.id,
+    event.data?.owner?.id,
+    event.data?.seatsPerTimeSlot,
+    formEmail,
+    isRescheduling,
+    seatedEventData.attendees,
+    seatedEventData.seatsPerTimeSlot,
+    selectedBookingEntries.length,
+    timeslot,
+  ]);
+
+  useEffect(() => {
+    setOwnerSeatCount((currentCount) => {
+      const nextCount = ownerSeatSelection.enabled
+        ? Math.min(currentCount, ownerSeatSelection.maxSeatCount)
+        : 1;
+
+      return nextCount < 1 ? 1 : nextCount;
+    });
+  }, [ownerSeatSelection.enabled, ownerSeatSelection.maxSeatCount, timeslot, selectedBookingEntries]);
 
   const _instantBooking = trpc.viewer.bookings.getInstantBookingLocation.useQuery(
     {
@@ -708,6 +776,45 @@ export const useBookings = ({
 
   const handleBatchBookEvent = async (bookingEntries = selectedBookingEntries) => {
     const values = bookingForm.getValues();
+    const attendeeEmail = bookingForm.getValues("responses.email");
+    const batchGroupId = bookingEntries.length > 1 ? globalThis.crypto.randomUUID() : null;
+    const createdBookings: Awaited<ReturnType<typeof createBooking>>[] = [];
+    const sendBatchSummaryEmail = async () => {
+      if (!batchGroupId || !attendeeEmail || createdBookings.length === 0) {
+        return;
+      }
+
+      try {
+        await createBatchBookingSummaryEmail({
+          attendeeEmail,
+          batchGroupId,
+          bookingReferences: createdBookings.flatMap((booking) =>
+            booking.uid
+              ? [
+                  {
+                    bookingUid: booking.uid,
+                    seatReferenceUid: booking.seatReferenceUid ?? null,
+                  },
+                ]
+              : []
+          ),
+        });
+      } catch (summaryEmailError) {
+        console.error("Batch booking summary email failed", {
+          summaryEmailError,
+          bookingReferences: createdBookings.flatMap((booking) =>
+            booking.uid
+              ? [
+                  {
+                    bookingUid: booking.uid,
+                    seatReferenceUid: booking.seatReferenceUid ?? null,
+                  },
+                ]
+              : []
+          ),
+        });
+      }
+    };
 
     if (!bookingEntries.length) {
       showToast(t("error_booking_event"), "error");
@@ -724,16 +831,27 @@ export const useBookings = ({
       setFormValues({});
       bookingForm.clearErrors();
 
-      const createdBookings = [];
-
-      for (const selectedBooking of bookingEntries) {
+      for (let index = 0; index < bookingEntries.length; index++) {
+        const selectedBooking = bookingEntries[index];
+        const batchMetadata: Record<string, string> =
+          batchGroupId && attendeeEmail
+            ? {
+                _bookingBatchGroupId: batchGroupId,
+                _bookingBatchIndex: String(index + 1),
+                _bookingBatchTotal: String(bookingEntries.length),
+                _bookingBatchSendSummary: "1",
+              }
+            : {};
         const bookingInput = buildBookingInputForEntry({
           entry: selectedBooking,
           values,
           timezone,
           language: i18n.language,
           username,
-          metadata,
+          metadata:
+            bookingEntries.length > 1
+              ? { ...metadata, ...batchMetadata, _ownerSeatBatchIndex: String(index + 1) }
+              : metadata,
           hashedLink,
           teamMemberEmail,
           crmOwnerRecordType,
@@ -751,7 +869,35 @@ export const useBookings = ({
         createdBookings.push(booking);
       }
 
+      await sendBatchSummaryEmail();
+
       const firstBooking = createdBookings[0];
+
+      if (firstBooking?.uid && createdBookings.length > 1) {
+        try {
+          localStorage.setItem(
+            SUCCESS_BOOKING_CART_STORAGE_KEY,
+            JSON.stringify({
+              primaryBookingUid: firstBooking.uid,
+              items: createdBookings.flatMap((booking, index) =>
+                booking.uid
+                  ? [
+                      {
+                        uid: booking.uid,
+                        title: bookingEntries[index]?.title ?? booking.title,
+                        startTime: booking.startTime,
+                        endTime: booking.endTime,
+                        seatReferenceUid: booking.seatReferenceUid ?? null,
+                      },
+                    ]
+                  : []
+              ),
+            })
+          );
+        } catch (storageError) {
+          console.error("Failed to store success booking cart summary", { storageError });
+        }
+      }
 
       setSelectedDatesAndTimes({});
       setFormValues({});
@@ -783,7 +929,7 @@ export const useBookings = ({
         query: {
           isSuccessBookingPage: true,
           email: bookingForm.getValues("responses.email"),
-          eventTypeSlug: selectedBookingEntries[0]?.eventTypeSlug ?? eventSlug,
+          eventTypeSlug: bookingEntries[0]?.eventTypeSlug ?? eventSlug,
         },
         booking: firstBooking,
         forwardParamsSuccessRedirect:
@@ -792,6 +938,8 @@ export const useBookings = ({
             : event?.data?.forwardParamsSuccessRedirect,
       });
     } catch (error) {
+      await sendBatchSummaryEmail();
+
       console.error("Batch booking failed", {
         error,
         selectedBookingEntries: bookingEntries,
@@ -810,6 +958,32 @@ export const useBookings = ({
     }
   };
 
+  const buildRepeatedOwnerSeatEntries = (seatCount: number): SelectedBookingEntry[] => {
+    const repeatCount = Math.max(1, seatCount);
+    const selectedEntry = selectedBookingEntries[0];
+
+    if (selectedEntry) {
+      return Array.from({ length: repeatCount }, () => selectedEntry);
+    }
+
+    if (!event.data || !timeslot) {
+      return [];
+    }
+
+    const syntheticEntry: SelectedBookingEntry = {
+      bookableResourceSlug: event.data.slug,
+      eventTypeId: event.data.id,
+      eventTypeSlug: event.data.slug,
+      title: event.data.title,
+      length: selectedDuration ?? event.data.length,
+      schedulingType: event.data.schedulingType,
+      start: timeslot,
+      dateKey: dayjs(timeslot).format("YYYY-MM-DD"),
+    };
+
+    return Array.from({ length: repeatCount }, () => syntheticEntry);
+  };
+
   const handleBookEvent = (inputTimeSlot?: string) => {
     const effectiveSelectedBookingEntries =
       selectedBookingEntries.length > 0
@@ -826,6 +1000,11 @@ export const useBookings = ({
         selectedTimeslot: timeslot,
         effectiveSelectedBookingEntries,
       });
+    }
+
+    if (ownerSeatSelection.enabled && ownerSeatCount > 1) {
+      void handleBatchBookEvent(buildRepeatedOwnerSeatEntries(ownerSeatCount));
+      return;
     }
 
     if (effectiveSelectedBookingEntries.length === 1) {
@@ -911,5 +1090,8 @@ export const useBookings = ({
     loadingStates,
     instantVideoMeetingUrl,
     instantConnectCooldownMs,
+    ownerSeatCount,
+    ownerSeatSelection,
+    setOwnerSeatCount,
   };
 };

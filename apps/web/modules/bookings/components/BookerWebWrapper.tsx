@@ -57,7 +57,7 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     bookerLayout.defaultLayout !== "week_view" &&
     bookerLayout.defaultLayout !== "column_view"
       ? "mobile"
-      : props.initialLayout ?? bookerLayout.defaultLayout;
+      : (props.initialLayout ?? bookerLayout.defaultLayout);
   const selectedDate = useBookerStoreContext((state) => state.selectedDate);
   const isRedirect = searchParams?.get("redirected") === "true" || false;
   const fromUserNameRedirected = searchParams?.get("username") || "";
@@ -164,6 +164,10 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
   });
   const bookings = useBookings({
     event,
+    currentUser: {
+      id: session?.user.id,
+      email: session?.user.email,
+    },
     hashedLink: props.hashedLink,
     bookingForm: bookerForm.bookingForm,
     metadata: metadata ?? {},

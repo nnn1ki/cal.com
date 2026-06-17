@@ -13,19 +13,13 @@ export enum TimeFormat {
   TWENTY_FOUR_HOUR = "HH:mm",
 }
 
-export const setIs24hClockInLocalStorage = (is24h: boolean) =>
-  localStorage.setItem(is24hLocalstorageKey, is24h.toString());
+export const setIs24hClockInLocalStorage = (_is24h: boolean) =>
+  localStorage.setItem(is24hLocalstorageKey, "true");
 
-export const getIs24hClockFromLocalStorage = () => {
-  const is24hFromLocalstorage = localStorage.getItem(is24hLocalstorageKey);
+export const getIs24hClockFromLocalStorage = () => true;
 
-  if (is24hFromLocalstorage === null) return null;
-
-  return is24hFromLocalstorage === "true";
-};
-
-export const getTimeFormatStringFromUserTimeFormat = (timeFormat: number | null | undefined): TimeFormat => {
-  return timeFormat === 24 ? TimeFormat.TWENTY_FOUR_HOUR : TimeFormat.TWELVE_HOUR;
+export const getTimeFormatStringFromUserTimeFormat = (_timeFormat: number | null | undefined): TimeFormat => {
+  return TimeFormat.TWENTY_FOUR_HOUR;
 };
 
 /**
@@ -34,26 +28,11 @@ export const getTimeFormatStringFromUserTimeFormat = (timeFormat: number | null 
  * locale to determine the time format and store it in local storage.
  */
 export const isBrowserLocale24h = () => {
-  const localStorageTimeFormat = getIs24hClockFromLocalStorage();
-  // If time format is already stored in the browser then retrieve and return early
-  if (localStorageTimeFormat === true) {
-    return true;
-  } else if (localStorageTimeFormat === false) {
-    return false;
-  }
-  // Intl.DateTimeFormat with value=undefined uses local browser settings.
-  if (!!new Intl.DateTimeFormat(undefined, { hour: "numeric" }).format(0).match(/M/i)) {
-    setIs24hClockInLocalStorage(false);
-    return false;
-  } else {
-    setIs24hClockInLocalStorage(true);
-    return true;
-  }
+  setIs24hClockInLocalStorage(true);
+  return true;
 };
 
 /**
  * Returns the time format string based on whether the current set locale is 24h or 12h.
  */
-export const detectBrowserTimeFormat = isBrowserLocale24h()
-  ? TimeFormat.TWENTY_FOUR_HOUR
-  : TimeFormat.TWELVE_HOUR;
+export const detectBrowserTimeFormat = TimeFormat.TWENTY_FOUR_HOUR;

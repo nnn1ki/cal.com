@@ -24,6 +24,7 @@ import EventSuccessfullyScheduledSMS from "../sms/attendee/event-scheduled-sms";
 import { EmailType } from "./email-types";
 import AttendeeAddGuestsEmail from "./templates/attendee-add-guests-email";
 import AttendeeAwaitingPaymentEmail from "./templates/attendee-awaiting-payment-email";
+import AttendeeBatchScheduledSummaryEmail from "./templates/attendee-batch-scheduled-summary-email";
 import AttendeeCancelledEmail from "./templates/attendee-cancelled-email";
 import AttendeeCancelledSeatEmail from "./templates/attendee-cancelled-seat-email";
 import AttendeeDeclinedEmail from "./templates/attendee-declined-email";
@@ -779,6 +780,21 @@ export const sendAddGuestsEmails = async (calEvent: CalendarEvent, newGuests: st
   );
 
   await Promise.all(emailsToSend);
+};
+
+export const sendBatchAttendeeScheduledSummaryEmail = async (
+  items: {
+    attendee: Person;
+    calEvent: CalendarEvent;
+  }[]
+) => {
+  const attendee = items[0]?.attendee;
+
+  if (!attendee) {
+    return;
+  }
+
+  await sendEmail(() => new AttendeeBatchScheduledSummaryEmail({ attendee, items }));
 };
 
 export const sendAddGuestsEmailsAndSMS = async (args: {

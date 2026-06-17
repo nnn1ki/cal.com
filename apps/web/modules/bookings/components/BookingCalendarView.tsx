@@ -55,10 +55,16 @@ export function BookingCalendarView({ bookings, currentDate }: BookingCalendarVi
         const eventTypeColor =
           booking.eventType?.eventTypeColor &&
           booking.eventType.eventTypeColor[hasDarkTheme ? "darkEventTypeColor" : "lightEventTypeColor"];
+        const totalSeats = booking.eventType?.seatsPerTimeSlot ?? null;
+        const takenSeats = booking.attendees.length;
+        const showSeatCount = !!totalSeats && totalSeats > 0;
+        const fallbackTitle = `${booking.eventType?.title ?? booking.title} бронь ${getAttendeeDisplayName(booking)}`;
+        const eventTitle = showSeatCount ? `${takenSeats}/${totalSeats}` : fallbackTitle;
 
         return {
           id: idx,
-          title: `${booking.eventType?.title ?? booking.title} бронь ${getAttendeeDisplayName(booking)}`,
+          title: eventTitle,
+          description: showSeatCount ? fallbackTitle : undefined,
           start: new Date(booking.startTime),
           end: new Date(booking.endTime),
           resourceId: booking.eventType?.id,

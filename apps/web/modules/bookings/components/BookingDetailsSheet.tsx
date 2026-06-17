@@ -28,12 +28,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@calcom/ui/components/sheet";
+import { showToast } from "@calcom/ui/components/toast";
 import { Tooltip } from "@calcom/ui/components/tooltip";
 import { ExternalLinkIcon, RepeatIcon } from "@coss/ui/icons";
 import { BookingHistory } from "@calcom/web/modules/booking-audit/components/BookingHistory";
 import assignmentReasonBadgeTitleMap from "@lib/booking/assignmentReasonBadgeTitleMap";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AcceptBookingButton } from "../../../components/booking/AcceptBookingButton";
 import { BookingActionsDropdown } from "../../../components/booking/actions/BookingActionsDropdown";
 import { BookingActionsStoreProvider } from "../../../components/booking/actions/BookingActionsStoreProvider";
@@ -143,8 +144,10 @@ function BookingDetailsSheetInner({
   bookingAuditEnabled = false,
 }: BookingDetailsSheetInnerProps) {
   const { t } = useLocale();
+  const utils = trpc.useUtils();
   const [activeSegment, setActiveSegment] =
     useActiveSegment(bookingAuditEnabled);
+  const [cancellingSeatReferenceUid, setCancellingSeatReferenceUid] = useState<string | null>(null);
 
   // Fetch additional booking details for reschedule information
   const { data: bookingDetails } =
@@ -261,6 +264,65 @@ function BookingDetailsSheetInner({
   const attendeeDisplayName = primaryAttendee
     ? primaryAttendee.name || primaryAttendee.email?.split("@")[0] || primaryAttendee.email || t("booking").toLowerCase()
     : t("booking").toLowerCase();
+  const canCancelSeatAttendees = Boolean(
+    booking.eventType?.seatsPerTimeSlot &&
+      booking.attendees.length > 1 &&
+      userEmail &&
+      (booking.user?.id === userId ||
+        booking.eventType?.hosts?.some((host) => host.user?.id === userId))
+  );
+
+  const handleCancelSeatAttendee = useCallback(
+    async (seatReferenceUid: string) => {
+      if (!userEmail) {
+        showToast(t("something_went_wrong"), "error");
+        return;
+      }
+
+      if (!window.confirm(t("really_cancel_booking"))) {
+        return;
+      }
+
+      try {
+        setCancellingSeatReferenceUid(seatReferenceUid);
+
+        const response = await fetch("/api/csrf?sameSite=none", { cache: "no-store" });
+        const { csrfToken } = (await response.json()) as { csrfToken: string };
+
+        const cancelResponse = await fetch("/api/cancel", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            uid: booking.uid,
+            seatReferenceUid,
+            cancelledBy: userEmail,
+            allRemainingBookings: false,
+            skipCancellationReasonValidation: true,
+            csrfToken,
+          }),
+        });
+
+        if (!cancelResponse.ok) {
+          const errorData = (await cancelResponse.json()) as { message?: string };
+          throw new Error(errorData.message || t("something_went_wrong"));
+        }
+
+        showToast(t("booking_cancelled"), "success");
+        await Promise.all([
+          utils.viewer.bookings.invalidate(),
+          utils.viewer.bookings.getBookingDetails.invalidate({ uid: booking.uid }),
+        ]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : t("something_went_wrong");
+        showToast(message, "error");
+      } finally {
+        setCancellingSeatReferenceUid(null);
+      }
+    },
+    [booking.uid, t, userEmail, utils.viewer.bookings]
+  );
 
   const reason =
     booking.assignmentReasonSortedByCreatedAt?.[booking.assignmentReasonSortedByCreatedAt.length - 1];
@@ -394,7 +456,12 @@ function BookingDetailsSheetInner({
 
                 <CancelledBookingInfo booking={booking} />
 
-                <WhoSection booking={booking} />
+                <WhoSection
+                  booking={booking}
+                  canCancelSeatAttendees={canCancelSeatAttendees}
+                  cancellingSeatReferenceUid={cancellingSeatReferenceUid}
+                  onCancelSeatAttendee={handleCancelSeatAttendee}
+                />
 
                 <RecurringInfoSection recurringInfo={recurringInfo} />
 
@@ -551,7 +618,17 @@ function DisplayTimestamp({
   );
 }
 
-function WhoSection({ booking }: { booking: BookingOutput }) {
+function WhoSection({
+  booking,
+  canCancelSeatAttendees,
+  cancellingSeatReferenceUid,
+  onCancelSeatAttendee,
+}: {
+  booking: BookingOutput;
+  canCancelSeatAttendees: boolean;
+  cancellingSeatReferenceUid: string | null;
+  onCancelSeatAttendee: (seatReferenceUid: string) => void;
+}) {
   const { t } = useLocale();
   if (booking.attendees.length === 0) {
     return null;
@@ -567,6 +644,7 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
   const getSeatData = (attendee: BookingOutput["attendees"][number]) => {
     const attendeeWithSeat = attendee as typeof attendee & {
       bookingSeat?: {
+        referenceUid?: string;
         data?: unknown;
       } | null;
     };
@@ -585,6 +663,11 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
     <Section title={t("who")}>
       <div className="mt-2 flex flex-col gap-3">
         {booking.attendees.map((attendee, idx) => {
+          const attendeeWithSeat = attendee as typeof attendee & {
+            bookingSeat?: {
+              referenceUid?: string;
+            } | null;
+          };
           const name =
             attendee.user?.name ||
             attendee.name ||
@@ -624,8 +707,10 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
             })
             .filter((detail): detail is { key: string; label: string; value: string } => Boolean(detail));
 
+          const seatReferenceUid = attendeeWithSeat.bookingSeat?.referenceUid;
+
           return (
-            <div key={idx} className="flex items-center gap-4">
+            <div key={idx} className="flex items-start gap-4">
               <Avatar
                 size="md"
                 imageSrc={
@@ -657,6 +742,17 @@ function WhoSection({ booking }: { booking: BookingOutput }) {
                   </div>
                 )}
               </div>
+              {canCancelSeatAttendees && seatReferenceUid ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  color="secondary"
+                  loading={cancellingSeatReferenceUid === seatReferenceUid}
+                  disabled={Boolean(cancellingSeatReferenceUid)}
+                  onClick={() => onCancelSeatAttendee(seatReferenceUid)}>
+                  {t("cancel")}
+                </Button>
+              ) : null}
             </div>
           );
         })}
