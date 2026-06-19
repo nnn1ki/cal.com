@@ -91,12 +91,6 @@ export type EventTypeWebWrapperProps = {
   permissions?: EventPermissions;
 };
 
-const hiddenEventTypeTabs = ["limits", "recurring", "apps", "workflows", "webhooks"] as const;
-
-const isHiddenEventTypeTab = (tabName: string): tabName is (typeof hiddenEventTypeTabs)[number] => {
-  return hiddenEventTypeTabs.includes(tabName as (typeof hiddenEventTypeTabs)[number]);
-};
-
 export const EventTypeWebWrapper = ({
   id,
   data: serverFetchedData,
@@ -360,7 +354,6 @@ const EventTypeWeb = ({
   const {
     data: { tabName },
   } = useTypedQuery(querySchema);
-  const effectiveTabName = isHiddenEventTypeTab(tabName) ? "setup" : tabName;
 
   const deleteMutation = trpc.viewer.eventTypes.delete.useMutation({
     onSuccess: async () => {
@@ -415,7 +408,7 @@ const EventTypeWeb = ({
       formMethods={form}
       isUpdating={updateMutation.isPending}
       isPlatform={false}
-      tabName={effectiveTabName}
+      tabName={tabName}
       tabsNavigation={tabsNavigation}>
       <>
         {slugExistsChildrenDialogOpen.length ? (

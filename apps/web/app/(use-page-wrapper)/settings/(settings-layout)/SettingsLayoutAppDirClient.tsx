@@ -35,7 +35,7 @@ import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import Shell from "~/shell/Shell";
 
-const hideTeamsSection = true;
+const hideTeamsSection = false;
 
 const getTabs = (orgBranding: OrganizationBranding | null) => {
   const tabs: VerticalTabItemProps[] = [
@@ -59,6 +59,26 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
           href: "/settings/my-account/appearance",
           trackingMetadata: { section: "my_account", page: "appearance" },
         },
+        {
+          name: "calendars",
+          href: "/settings/my-account/calendars",
+          trackingMetadata: { section: "my_account", page: "calendars" },
+        },
+        {
+          name: "conferencing",
+          href: "/settings/my-account/conferencing",
+          trackingMetadata: { section: "my_account", page: "conferencing" },
+        },
+        {
+          name: "out_of_office",
+          href: "/settings/my-account/out-of-office",
+          trackingMetadata: { section: "my_account", page: "out_of_office" },
+        },
+        {
+          name: "push_notifications",
+          href: "/settings/my-account/push-notifications",
+          trackingMetadata: { section: "my_account", page: "push_notifications" },
+        },
         // TODO
         // { name: "referrals", href: "/settings/my-account/referrals" },
       ],
@@ -72,6 +92,26 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
           name: "password",
           href: "/settings/security/password",
           trackingMetadata: { section: "security", page: "password" },
+        },
+        {
+          name: "two_factor_auth",
+          href: "/settings/security/two-factor-auth",
+          trackingMetadata: { section: "security", page: "two_factor_auth" },
+        },
+        {
+          name: "compliance",
+          href: "/settings/security/compliance",
+          trackingMetadata: { section: "security", page: "compliance" },
+        },
+        {
+          name: "impersonation",
+          href: "/settings/security/impersonation",
+          trackingMetadata: { section: "security", page: "impersonation" },
+        },
+        {
+          name: "SSO",
+          href: "/settings/security/sso",
+          trackingMetadata: { section: "security", page: "sso" },
         },
       ],
     },
@@ -148,6 +188,34 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
       href: "/settings/organizations/teams/other",
       icon: "users",
       children: [],
+    },
+    {
+      name: "billing",
+      href: "/settings/billing",
+      icon: "credit-card",
+      children: [],
+    },
+    {
+      name: "developer",
+      href: "/settings/developer",
+      icon: "code",
+      children: [
+        {
+          name: "api_keys",
+          href: "/settings/developer/api-keys",
+          trackingMetadata: { section: "developer", page: "api_keys" },
+        },
+        {
+          name: "webhooks",
+          href: "/settings/developer/webhooks",
+          trackingMetadata: { section: "developer", page: "webhooks" },
+        },
+        {
+          name: "oAuth",
+          href: "/settings/developer/oauth",
+          trackingMetadata: { section: "developer", page: "oauth" },
+        },
+      ],
     },
     {
       name: "admin",
