@@ -99,26 +99,26 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
       id: "personal" as PlanType,
       title: t("onboarding_plan_personal_title"),
       badge: t("onboarding_plan_personal_badge"),
-      description: t("onboarding_plan_personal_description"),
+      // description: t("onboarding_plan_personal_description"),
       icon: planIconByType.personal,
       variant: "single" as const,
     },
-    {
-      id: "team" as PlanType,
-      title: t("onboarding_plan_team_title"),
-      badge: t("onboarding_plan_team_badge"),
-      description: t("onboarding_plan_team_description"),
-      icon: planIconByType.team,
-      variant: "team" as const,
-    },
-    {
-      id: "organization" as PlanType,
-      title: t("onboarding_plan_organization_title"),
-      badge: t("onboarding_plan_organization_badge"),
-      description: t("onboarding_plan_organization_description"),
-      icon: planIconByType.organization,
-      variant: "organization" as const,
-    },
+    // {
+    //   id: "team" as PlanType,
+    //   title: t("onboarding_plan_team_title"),
+    //   badge: t("onboarding_plan_team_badge"),
+    //   description: t("onboarding_plan_team_description"),
+    //   icon: planIconByType.team,
+    //   variant: "team" as const,
+    // },
+    // {
+    //   id: "organization" as PlanType,
+    //   title: t("onboarding_plan_organization_title"),
+    //   badge: t("onboarding_plan_organization_badge"),
+    //   description: t("onboarding_plan_organization_description"),
+    //   icon: planIconByType.organization,
+    //   variant: "organization" as const,
+    // },
   ];
 
   // Only show organization plan for company emails
@@ -147,7 +147,7 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
         {/* Left column - Main content */}
         <OnboardingCard
           title={t("onboarding_select_plan")}
-          subtitle={t("onboarding_welcome_question")}
+          // subtitle={t("onboarding_welcome_question")}
           footer={
             <div className="flex w-full justify-end gap-2">
               <Button
