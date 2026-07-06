@@ -115,20 +115,5 @@ function TimezoneChangeDialogContainer() {
 }
 
 export default function TimezoneChangeDialog() {
-  const [renderDialog, setRenderDialog] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined" && document) {
-      const cookie = document.cookie
-        .split(";")
-        .find((cookie) => cookie.trim().startsWith("calcom-timezone-dialog"));
-      if (!cookie) {
-        setRenderDialog(true);
-      }
-    }
-  }, []);
-  // bail if the cookie exists or window/document is not available
-  if (!renderDialog) {
-    return null;
-  }
-  return <TimezoneChangeDialogContainer />;
+  return null;
 }

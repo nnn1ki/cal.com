@@ -288,7 +288,9 @@ export default function Signup({
         pushGTMEvent("create_account", { email: data.email, user: data.username, lang: data.language });
       }
 
-      const gettingStartedPath = onboardingV3Enabled ? "onboarding/getting-started" : "getting-started";
+      const gettingStartedPath = onboardingV3Enabled
+        ? "onboarding/personal/settings"
+        : "getting-started";
       const verifyOrGettingStarted = emailVerificationEnabled ? "auth/verify-email" : gettingStartedPath;
       const gettingStartedWithPlatform = "settings/platform/new";
 
@@ -566,11 +568,11 @@ export default function Signup({
                         />
                       ) : null}
 
-                      <CheckboxField
+                      {/* <CheckboxField
                         data-testid="signup-cookie-content-checkbox"
                         onChange={() => handleConsentChange(userConsentToCookie)}
                         description={t("cookie_consent_checkbox")}
-                      />
+                      /> */}
                       {errors.apiError && (
                         <Alert
                           className="mb-3"
@@ -815,7 +817,7 @@ export default function Signup({
                       </Link>
                     </div>
                     <div className="text-subtle">
-                      <ServerTrans
+                      {/* <ServerTrans
                         t={t}
                         i18nKey="signing_up_terms"
                         values={{ appName: APP_NAME }}
@@ -835,102 +837,15 @@ export default function Signup({
                             Privacy Policy.
                           </Link>,
                         ]}
-                      />
+                      /> */}
                     </div>
                   </div>
                 </div>
               </>
             )}
           </div>
-          <div className="border-subtle lg:bg-subtle mx-auto mt-24 w-full max-w-2xl flex-col justify-between rounded-l-2xl pl-4 dark:bg-none lg:mt-0 lg:flex lg:max-w-full lg:border lg:py-12 lg:pl-12">
-            {IS_CALCOM && (
-              <>
-                <div className="-mt-4 mb-6 mr-12 grid w-full grid-cols-3 gap-5 pr-4 sm:gap-3 lg:grid-cols-4">
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/product-of-the-day.svg"
-                      className="h-[34px] w-full dark:invert"
-                      alt="Cal.com was Product of the Day at ProductHunt"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/product-of-the-week.svg"
-                      className="h-[34px] w-full dark:invert"
-                      alt="Cal.com was Product of the Week at ProductHunt"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/product-of-the-month.svg"
-                      className="h-[34px] w-full dark:invert"
-                      alt="Cal.com was Product of the Month at ProductHunt"
-                    />
-                  </div>
-                </div>
-                <div className="mb-6 mr-12 grid w-full grid-cols-3 gap-5 pr-4 sm:gap-3 lg:grid-cols-4">
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/producthunt.svg"
-                      className="h-[54px] w-full"
-                      alt="ProductHunt Rating of 5 Stars"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/google-reviews.svg"
-                      className="h-[54px] w-full"
-                      alt="Google Reviews Rating of 4.7 Stars"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/g2.svg"
-                      className="h-[54px] w-full"
-                      alt="G2 Rating of 4.7 Stars"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-            <div className="border-default bg-black/3 hidden rounded-bl-2xl rounded-br-none rounded-tl-2xl border border-r-0 border-dashed dark:bg-white/5 lg:block lg:py-[6px] lg:pl-[6px]">
-              <img className="block dark:hidden" src="/mock-event-type-list.svg" alt="Cal.com Booking Page" />
-              {/* eslint-disable @next/next/no-img-element */}
-              <img
-                className="hidden dark:block"
-                src="/mock-event-type-list-dark.svg"
-                alt="Cal.com Booking Page"
-              />
-            </div>
-            <div className="mr-12 mt-8 hidden h-full w-full grid-cols-3 gap-4 overflow-hidden lg:grid">
-              {FEATURES.map((feature, index) => (
-                <div key={index} className="max-w-52 mb-8 flex flex-col leading-none sm:mb-0">
-                  <div className="text-emphasis items-center">
-                    <Icon name={feature.icon} className="mb-1 h-4 w-4" />
-                    <span className="text-sm font-medium">{t(feature.title)}</span>
-                  </div>
-                  <div className="text-subtle text-sm">
-                    <p>
-                      {t(
-                        feature.description,
-                        feature.i18nOptions && {
-                          ...feature.i18nOptions,
-                        }
-                      )}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
-        <Toaster position="bottom-right" />
+        
       </div>
     </>
   );

@@ -55,10 +55,10 @@ export function BookingList({
           <EmptyScreen
             Icon="calendar"
             headline={t("no_status_bookings_yet", { status: t(status).toLowerCase() })}
-            description={t("no_status_bookings_yet_description", {
-              status: t(status).toLowerCase(),
-              description: t(descriptionByStatus[status]),
-            })}
+            // description={t("no_status_bookings_yet_description", {
+            //   status: t(status).toLowerCase(),
+            //   description: t(descriptionByStatus[status]),
+            // })}
           />
         </div>
       }

@@ -33,11 +33,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
+import { isDemoAdminEmail } from "@calcom/web/lib/demo-admin";
 import Shell from "~/shell/Shell";
 
 const hideTeamsSection = true;
 
-const getTabs = (orgBranding: OrganizationBranding | null) => {
+const getTabs = (orgBranding: OrganizationBranding | null, isDemoAdminUser: boolean) => {
   const tabs: VerticalTabItemProps[] = [
     {
       name: "my_account",
@@ -54,11 +55,15 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
           href: "/settings/my-account/general",
           trackingMetadata: { section: "my_account", page: "general" },
         },
-        {
-          name: "appearance",
-          href: "/settings/my-account/appearance",
-          trackingMetadata: { section: "my_account", page: "appearance" },
-        },
+        ...(isDemoAdminUser
+          ? [
+              {
+                name: "appearance",
+                href: "/settings/my-account/appearance",
+                trackingMetadata: { section: "my_account", page: "appearance" },
+              },
+            ]
+          : []),
         // TODO
         // { name: "referrals", href: "/settings/my-account/referrals" },
       ],
@@ -276,7 +281,7 @@ const useTabs = ({
   const isAdmin = session.data?.user.role === UserPermissionRole.ADMIN;
 
   const processTabsMemod = useMemo(() => {
-    const processedTabs = getTabs(orgBranding).map((tab) => {
+    const processedTabs = getTabs(orgBranding, isDemoAdminEmail(session.data?.user?.email)).map((tab) => {
       if (tab.href === "/settings/my-account") {
         return {
           ...tab,

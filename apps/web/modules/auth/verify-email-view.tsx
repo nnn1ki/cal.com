@@ -50,7 +50,9 @@ function VerifyEmailPage() {
       posthog.capture("verify_email_already_verified", {
         onboarding_v3_enabled: flags["onboarding-v3"],
       });
-      const gettingStartedPath = flags["onboarding-v3"] ? "/onboarding/getting-started" : "/getting-started";
+      const gettingStartedPath = flags["onboarding-v3"]
+        ? "/onboarding/personal/settings"
+        : "/getting-started";
       router.replace(gettingStartedPath);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,7 +74,7 @@ function VerifyEmailPage() {
             buttonRaw={
               <>
                 <div className="mb-4 flex flex-wrap items-center gap-2">
-                  {EMAIL_CLIENTS.map(({ name, icon, href }) => (
+                  {/* {EMAIL_CLIENTS.map(({ name, icon, href }) => (
                     <Button
                       key={name}
                       color="secondary"
@@ -81,7 +83,7 @@ function VerifyEmailPage() {
                       rel="noopener noreferrer">
                       <img src={icon} alt={name} className="me-1 h-4 w-4" /> {name}
                     </Button>
-                  ))}
+                  ))} */}
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Button

@@ -1,12 +1,16 @@
 import { useSearchParams, usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { useSession } from "next-auth/react";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
 
 export function useBookingStatusTab() {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isRestrictedUser = isRestrictedDemoUser(session?.user?.email);
 
   const tabOptions = useMemo(() => {
     const queryString = searchParams?.toString() || "";
@@ -44,13 +48,17 @@ export function useBookingStatusTab() {
       },
     ];
 
-    return baseTabConfigs.map((tabConfig) => ({
+    const visibleTabs = isRestrictedUser
+      ? baseTabConfigs.filter((tabConfig) => tabConfig.value !== "recurring")
+      : baseTabConfigs;
+
+    return visibleTabs.map((tabConfig) => ({
       value: tabConfig.value,
       label: t(tabConfig.label),
       dataTestId: tabConfig.dataTestId,
       href: queryString ? `${tabConfig.path}?${queryString}` : tabConfig.path,
     }));
-  }, [searchParams, t]);
+  }, [isRestrictedUser, searchParams, t]);
 
   const currentTab = useMemo(() => {
     const pathMatch = pathname?.match(/\/bookings\/(\w+)/);

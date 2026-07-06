@@ -9,6 +9,7 @@ import { ShellMainAppDir } from "app/(use-page-wrapper)/(main-nav)/ShellMainAppD
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
 import { validStatuses } from "~/bookings/lib/validStatuses";
 import BookingsList from "~/bookings/views/bookings-view";
 
@@ -35,6 +36,10 @@ const Page = async ({ params }: PageProps) => {
 
   if (!session?.user?.id) {
     return redirect("/auth/login");
+  }
+
+  if (parsed.data.status === "recurring" && isRestrictedDemoUser(session.user.email)) {
+    redirect("/bookings/upcoming");
   }
 
   const userId = session.user.id;

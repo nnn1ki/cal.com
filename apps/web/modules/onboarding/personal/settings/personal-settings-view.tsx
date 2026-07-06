@@ -18,6 +18,7 @@ import { OnboardingCard } from "../../components/OnboardingCard";
 import { OnboardingLayout } from "../../components/OnboardingLayout";
 import { OnboardingBrowserView } from "../../components/onboarding-browser-view";
 import { OnboardingContinuationPrompt } from "../../components/onboarding-continuation-prompt";
+import { useSubmitPersonalOnboarding } from "../../hooks/useSubmitPersonalOnboarding";
 import { useOnboardingStore } from "../../store/onboarding-store";
 
 type PersonalSettingsViewProps = {
@@ -35,6 +36,7 @@ export const PersonalSettingsView = ({
   const { t } = useLocale();
   const { data: user } = trpc.viewer.me.get.useQuery();
   const { personalDetails, setPersonalDetails } = useOnboardingStore();
+  const { submitPersonalOnboarding, isSubmitting } = useSubmitPersonalOnboarding();
 
   const avatarRef = useRef<HTMLInputElement>(null);
   const [imageSrc, setImageSrc] = useState<string>("");
@@ -103,7 +105,7 @@ export const PersonalSettingsView = ({
       bio: data.bio || "",
     });
 
-    router.push("/onboarding/personal/calendar");
+    submitPersonalOnboarding();
   });
 
   if (!user) {
@@ -132,8 +134,8 @@ export const PersonalSettingsView = ({
                 form="personal-settings-form"
                 color="primary"
                 className="rounded-[10px]"
-                loading={mutation.isPending}
-                disabled={mutation.isPending || !form.formState.isValid}>
+                loading={mutation.isPending || isSubmitting}
+                disabled={mutation.isPending || isSubmitting || !form.formState.isValid}>
                 {t("continue")}
               </Button>
             </div>

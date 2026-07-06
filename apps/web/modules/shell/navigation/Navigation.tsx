@@ -10,6 +10,7 @@ import { useMobileMoreItems } from "./useMobileMoreItems";
 import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
 import classNames from "@calcom/ui/classNames";
 import { useHasPaidPlan } from "@calcom/web/modules/billing/hooks/useHasPaidPlan";
+import { isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
 
 import UnconfirmedBookingBadge from "../../bookings/components/UnconfirmedBookingBadge";
 import { KBarTrigger } from "../Kbar";
@@ -20,34 +21,51 @@ import { NavigationItem, MobileNavigationItem, MobileNavigationMoreItem } from "
 export const MORE_SEPARATOR_NAME = "more";
 
 const getNavigationItems = (
-  orgBranding: OrganizationBranding
-): NavigationItemType[] => [
-  {
-    name: "event_types_page_title",
-    href: "/event-types",
-    icon: "link",
-  },
-  {
-    name: "bookings",
-    href: "/bookings/upcoming",
-    icon: "calendar",
-    badge: <UnconfirmedBookingBadge />,
-    isCurrent: ({ pathname }) => pathname?.startsWith("/bookings") ?? false,
-  },
-  {
-    name: "availability",
-    href: "/availability",
-    icon: "clock",
-  },
-  {
-    name: MORE_SEPARATOR_NAME,
-    href: "/more",
-    icon: "ellipsis",
-  },
-  
-  
-  
-];
+  orgBranding: OrganizationBranding,
+  isRestrictedUser: boolean
+): NavigationItemType[] => {
+  if (isRestrictedUser) {
+    return [
+      {
+        name: "bookings",
+        href: "/bookings/upcoming",
+        icon: "calendar",
+        badge: <UnconfirmedBookingBadge />,
+        isCurrent: ({ pathname }) => pathname?.startsWith("/bookings") ?? false,
+      },
+      {
+        name: MORE_SEPARATOR_NAME,
+        href: "/more",
+        icon: "ellipsis",
+      },
+    ];
+  }
+
+  return [
+    {
+      name: "event_types_page_title",
+      href: "/event-types",
+      icon: "link",
+    },
+    {
+      name: "bookings",
+      href: "/bookings/upcoming",
+      icon: "calendar",
+      badge: <UnconfirmedBookingBadge />,
+      isCurrent: ({ pathname }) => pathname?.startsWith("/bookings") ?? false,
+    },
+    {
+      name: "availability",
+      href: "/availability",
+      icon: "clock",
+    },
+    {
+      name: MORE_SEPARATOR_NAME,
+      href: "/more",
+      icon: "ellipsis",
+    },
+  ];
+};
 
 const platformNavigationItems: NavigationItemType[] = [
   {
@@ -102,9 +120,11 @@ const platformNavigationItems: NavigationItemType[] = [
 const useNavigationItems = (isPlatformNavigation = false) => {
   const orgBranding = useOrgBranding();
   const { hasPaidPlan, isPending } = useHasPaidPlan();
+  const { data: session } = useSession();
+  const isRestrictedUser = isRestrictedDemoUser(session?.user?.email);
   return useMemo(() => {
     const items = !isPlatformNavigation
-      ? getNavigationItems(orgBranding)
+      ? getNavigationItems(orgBranding, isRestrictedUser)
       : platformNavigationItems;
 
     const desktopNavigationItems = items.filter((item) => item.name !== MORE_SEPARATOR_NAME);
@@ -120,7 +140,7 @@ const useNavigationItems = (isPlatformNavigation = false) => {
       mobileNavigationBottomItems,
       mobileNavigationMoreItems,
     };
-  }, [hasPaidPlan, isPending, isPlatformNavigation, orgBranding]);
+  }, [hasPaidPlan, isPending, isPlatformNavigation, isRestrictedUser, orgBranding]);
 };
 
 export const Navigation = ({ isPlatformNavigation = false }: { isPlatformNavigation?: boolean }) => {

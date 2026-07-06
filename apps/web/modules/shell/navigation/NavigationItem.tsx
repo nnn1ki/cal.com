@@ -44,6 +44,7 @@ export type NavigationItemType = {
   name: string;
   href: string;
   isLoading?: boolean;
+  highlighted?: boolean;
   onClick?: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
   target?: HTMLAnchorElement["target"];
   badge?: React.ReactNode;

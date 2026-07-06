@@ -8,6 +8,8 @@ import classNames from "@calcom/ui/classNames";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
 import { BookingListContainer } from "../components/BookingListContainer";
 import { useActiveFiltersValidator } from "../hooks/useActiveFiltersValidator";
 import { useBookingsView } from "../hooks/useBookingsView";
@@ -76,11 +78,14 @@ export default function Bookings(props: BookingsProps) {
 }
 
 function BookingsContent({ status, permissions, bookingsV3Enabled, bookingAuditEnabled }: BookingsProps) {
+  const { data: session } = useSession();
   const [view] = useBookingsView({ bookingsV3Enabled });
+  const isRestrictedUser = isRestrictedDemoUser(session?.user?.email);
+  const resolvedView = isRestrictedUser ? "list" : view;
 
   return (
-    <div className={classNames(view === "calendar" && "-mb-8")}>
-      {view === "list" && (
+    <div className={classNames(resolvedView === "calendar" && "-mb-8")}>
+      {resolvedView === "list" && (
         <BookingListContainer
           status={status}
           permissions={permissions}
@@ -88,7 +93,7 @@ function BookingsContent({ status, permissions, bookingsV3Enabled, bookingAuditE
           bookingAuditEnabled={bookingAuditEnabled}
         />
       )}
-      {bookingsV3Enabled && view === "calendar" && (
+      {bookingsV3Enabled && resolvedView === "calendar" && (
         <BookingCalendarContainer
           status={status}
           permissions={permissions}

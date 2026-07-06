@@ -6,6 +6,11 @@ import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import { showToast } from "@calcom/ui/components/toast";
 import { useHasActiveTeamPlanAsOwner } from "@calcom/web/modules/billing/hooks/useHasPaidPlan";
+import {
+  getDemoAdminBookingUrl,
+  getDemoAdminPublicPageUrl,
+  isRestrictedDemoUser,
+} from "@calcom/web/lib/demo-admin";
 
 import { type NavigationItemType } from "./navigation/NavigationItem";
 
@@ -33,6 +38,36 @@ export function useBottomNavItems({
       showToast(t("something_went_wrong"), "error");
     },
   });
+
+  const isRestrictedUser = isRestrictedDemoUser(user?.email);
+  const demoAdminBookingUrl = getDemoAdminBookingUrl();
+  const demoAdminPublicPageUrl = getDemoAdminPublicPageUrl();
+
+  if (isRestrictedUser) {
+    return [
+      demoAdminBookingUrl
+        ? {
+            name: "book_now",
+            href: demoAdminBookingUrl,
+            icon: "calendar",
+            highlighted: true,
+          }
+        : null,
+      demoAdminPublicPageUrl
+        ? {
+            name: "view_public_page",
+            href: demoAdminPublicPageUrl,
+            icon: "external-link",
+            target: "__blank",
+          }
+        : null,
+      {
+        name: "settings",
+        href: user?.org ? `/settings/organizations/profile` : "/settings/my-account/profile",
+        icon: "settings",
+      },
+    ].filter(Boolean) as NavigationItemType[];
+  }
 
   return [
     // Render above to prevent layout shift as much as possible
