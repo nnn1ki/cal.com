@@ -80,12 +80,12 @@ export function getVideoOptionsActions(context: BookingActionContext): ActionTyp
   const { booking, isBookingInPast, isConfirmed, isCalVideoLocation, t } = context;
 
   return [
-    {
-      id: "view_recordings",
-      label: t("view_recordings"),
-      icon: "video",
-      disabled: !(isBookingInPast && isConfirmed && isCalVideoLocation && booking.isRecorded),
-    },
+    // {
+    //   id: "view_recordings",
+    //   label: t("view_recordings"),
+    //   icon: "video",
+    //   disabled: !(isBookingInPast && isConfirmed && isCalVideoLocation && booking.isRecorded),
+    // },
     {
       id: "meeting_session_details",
       label: t("view_session_details"),
@@ -143,28 +143,28 @@ export function getEditEventActions(context: BookingActionContext): ActionType[]
           isDisabledRescheduling,
         }) || booking.seatsReferences.length > 0,
     },
-    isBookingFromRoutingForm
-      ? {
-          id: "reroute",
-          label: t("reroute"),
-          icon: "waypoints",
-          disabled: isActionDisabled("reroute", context),
-        }
-      : null,
-    {
-      id: "change_location",
-      label: t("edit_location"),
-      icon: "map-pin",
-      disabled: isActionDisabled("change_location", context),
-    },
-    booking.eventType?.disableGuests
-      ? null
-      : {
-          id: "add_members",
-          label: t("additional_guests"),
-          icon: "user-plus",
-          disabled: isActionDisabled("add_members", context),
-        },
+    // isBookingFromRoutingForm
+    //   ? {
+    //       id: "reroute",
+    //       label: t("reroute"),
+    //       icon: "waypoints",
+    //       disabled: isActionDisabled("reroute", context),
+    //     }
+    //   : null,
+    // {
+    //   id: "change_location",
+    //   label: t("edit_location"),
+    //   icon: "map-pin",
+    //   disabled: isActionDisabled("change_location", context),
+    // },
+    // booking.eventType?.disableGuests
+    //   ? null
+    //   : {
+    //       id: "add_members",
+    //       label: t("additional_guests"),
+    //       icon: "user-plus",
+    //       disabled: isActionDisabled("add_members", context),
+    //     },
     isReassignable
       ? {
           id: "reassign",

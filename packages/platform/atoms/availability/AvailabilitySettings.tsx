@@ -580,6 +580,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
 
                     <div className="min-w-40 stack-y-2 col-span-3 px-2 py-4 lg:col-span-1">
                       <div className="xl:max-w-80 w-full pr-4 sm:ml-0 sm:mr-36 sm:p-0">
+                        {/* Timezone block intentionally hidden, form logic preserved.
                         <div>
                           <Skeleton
                             as={Label}
@@ -608,6 +609,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
                             }
                           />
                         </div>
+                        */}
                         {!isPlatform && (
                           <>
                             <hr className="border-subtle my-8" />
@@ -728,6 +730,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
             </div>
             <div className="min-w-40 stack-y-2 col-span-3 hidden md:block lg:col-span-1">
               <div className="xl:max-w-80 w-full pr-4 sm:ml-0 sm:mr-36 sm:p-0">
+                {/* Timezone block intentionally hidden, form logic preserved.
                 <div>
                   <Skeleton
                     as={Label}
@@ -752,6 +755,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
                     }
                   />
                 </div>
+                */}
                 {isPlatform ? (
                   <></>
                 ) : (

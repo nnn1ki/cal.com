@@ -18,7 +18,7 @@ interface BuildFilterColumnsParams {
  */
 const FILTER_COLUMN_IDS = [
   "eventTypeId",
-  "teamId",
+  // "teamId",
   "userId",
   "attendeeName",
   "attendeeEmail",
@@ -50,18 +50,18 @@ export function buildFilterColumns({ t, permissions, status }: BuildFilterColumn
         },
       },
     }),
-    columnHelper.accessor((row) => (row.type === "data" ? (row.booking.eventType.team?.id ?? null) : null), {
-      id: "teamId",
-      header: t("team"),
-      enableColumnFilter: true,
-      enableSorting: false,
-      cell: () => null,
-      meta: {
-        filter: {
-          type: ColumnFilterType.MULTI_SELECT,
-        },
-      },
-    }),
+    // columnHelper.accessor((row) => (row.type === "data" ? (row.booking.eventType.team?.id ?? null) : null), {
+    //   id: "teamId",
+    //   header: t("team"),
+    //   enableColumnFilter: true,
+    //   enableSorting: false,
+    //   cell: () => null,
+    //   meta: {
+    //     filter: {
+    //       type: ColumnFilterType.MULTI_SELECT,
+    //     },
+    //   },
+    // }),
     columnHelper.accessor((row) => (row.type === "data" ? (row.booking.user?.id ?? null) : null), {
       id: "userId",
       header: t("member"),

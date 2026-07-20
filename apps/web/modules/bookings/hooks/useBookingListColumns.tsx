@@ -39,18 +39,18 @@ export function useBookingListColumns({
           },
         },
       }),
-      columnHelper.accessor((row) => !isSeparatorRow(row) && row.booking.eventType.team?.id, {
-        id: "teamId",
-        header: t("team"),
-        enableColumnFilter: true,
-        enableSorting: false,
-        cell: () => null,
-        meta: {
-          filter: {
-            type: ColumnFilterType.MULTI_SELECT,
-          },
-        },
-      }),
+      // columnHelper.accessor((row) => !isSeparatorRow(row) && row.booking.eventType.team?.id, {
+      //   id: "teamId",
+      //   header: t("team"),
+      //   enableColumnFilter: true,
+      //   enableSorting: false,
+      //   cell: () => null,
+      //   meta: {
+      //     filter: {
+      //       type: ColumnFilterType.MULTI_SELECT,
+      //     },
+      //   },
+      // }),
       columnHelper.accessor((row) => !isSeparatorRow(row) && row.booking.user?.id, {
         id: "userId",
         header: t("member"),
@@ -87,36 +87,36 @@ export function useBookingListColumns({
           },
         },
       }),
-      columnHelper.accessor((row) => row, {
-        id: "dateRange",
-        header: t("date_range"),
-        enableColumnFilter: true,
-        enableSorting: false,
-        cell: () => null,
-        meta: {
-          filter: {
-            type: ColumnFilterType.DATE_RANGE,
-            dateRangeOptions: {
-              range: status === "past" ? "past" : status === "cancelled" ? "any" : "future", // upcoming, unconfirmed, recurring are all future-only
-            },
-          },
-        },
-      }),
-      columnHelper.accessor((row) => !isSeparatorRow(row) && row.booking.uid, {
-        id: "bookingUid",
-        header: t("booking_uid"),
-        enableColumnFilter: true,
-        enableSorting: false,
-        cell: () => null,
-        meta: {
-          filter: {
-            type: ColumnFilterType.TEXT,
-            textOptions: {
-              allowedOperators: ["equals"],
-            },
-          },
-        },
-      }),
+      // columnHelper.accessor((row) => row, {
+      //   id: "dateRange",
+      //   header: t("date_range"),
+      //   enableColumnFilter: true,
+      //   enableSorting: false,
+      //   cell: () => null,
+      //   meta: {
+      //     filter: {
+      //       type: ColumnFilterType.DATE_RANGE,
+      //       dateRangeOptions: {
+      //         range: status === "past" ? "past" : status === "cancelled" ? "any" : "future", // upcoming, unconfirmed, recurring are all future-only
+      //       },
+      //     },
+      //   },
+      // }),
+      // columnHelper.accessor((row) => !isSeparatorRow(row) && row.booking.uid, {
+      //   id: "bookingUid",
+      //   header: t("booking_uid"),
+      //   enableColumnFilter: true,
+      //   enableSorting: false,
+      //   cell: () => null,
+      //   meta: {
+      //     filter: {
+      //       type: ColumnFilterType.TEXT,
+      //       textOptions: {
+      //         allowedOperators: ["equals"],
+      //       },
+      //     },
+      //   },
+      // }),
       columnHelper.display({
         id: "customView",
         cell: (props) => {

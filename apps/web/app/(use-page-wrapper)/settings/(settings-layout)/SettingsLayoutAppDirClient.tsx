@@ -50,11 +50,15 @@ const getTabs = (orgBranding: OrganizationBranding | null, isDemoAdminUser: bool
           href: "/settings/my-account/profile",
           trackingMetadata: { section: "my_account", page: "profile" },
         },
-        {
-          name: "general",
-          href: "/settings/my-account/general",
-          trackingMetadata: { section: "my_account", page: "general" },
-        },
+        ...(isDemoAdminUser 
+          ? [
+              {
+                name: "general",
+                href: "/settings/my-account/general",
+                trackingMetadata: { section: "my_account", page: "general" },
+              },
+            ]
+          : []),
         ...(isDemoAdminUser
           ? [
               {
@@ -373,7 +377,7 @@ const useTabs = ({
 const BackButtonInSidebar = ({ name }: { name: string }) => {
   return (
     <Link
-      href="/event-types"
+      href="/bookings/upcoming"
       className="hover:bg-subtle todesktop:mt-10 [&[aria-current='page']]:bg-emphasis [&[aria-current='page']]:text-emphasis group-hover:text-default text-emphasis group my-6 flex h-6 max-h-6 w-full flex-row items-center rounded-md px-3 py-2 text-sm font-medium leading-4 transition"
       data-testid={`vertical-tab-${name}`}>
       <ArrowLeftIcon className="h-4 w-4 stroke-[2px] ltr:mr-[10px] rtl:ml-[10px] rtl:rotate-180 md:mt-0" />

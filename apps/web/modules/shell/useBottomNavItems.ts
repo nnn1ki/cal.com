@@ -53,14 +53,7 @@ export function useBottomNavItems({
             highlighted: true,
           }
         : null,
-      demoAdminPublicPageUrl
-        ? {
-            name: "view_public_page",
-            href: demoAdminPublicPageUrl,
-            icon: "external-link",
-            target: "__blank",
-          }
-        : null,
+      
       {
         name: "settings",
         href: user?.org ? `/settings/organizations/profile` : "/settings/my-account/profile",

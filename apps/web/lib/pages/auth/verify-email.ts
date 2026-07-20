@@ -215,7 +215,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const gettingStartedPath = await OnboardingPathService.getGettingStartedPath();
 
-  return res.redirect(`${WEBAPP_URL}${hasCompletedOnboarding ? "/event-types" : gettingStartedPath}`);
+  return res.redirect(`${WEBAPP_URL}${hasCompletedOnboarding ? "/bookings/upcoming" : gettingStartedPath}`);
 }
 
 export async function cleanUpVerificationTokens(id: number) {

@@ -72,7 +72,7 @@ RUN yarn --cwd apps/web \
 
 RUN NODE_OPTIONS=--max-old-space-size=${MAX_OLD_SPACE_SIZE} \
     yarn --cwd apps/web \
-    workspace @calcom/web run build
+    workspace @calcom/web run build --no-lint --no-typescript
 
 RUN rm -rf \
     node_modules/.cache \

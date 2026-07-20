@@ -1,5 +1,3 @@
-# Use postgres/example user/password credentials
-
 volumes:
   database-data:
   redis-data:
@@ -13,6 +11,7 @@ services:
   database:
     container_name: database
     image: postgres
+    platform: linux/amd64           # ← явно для amd64
     restart: always
     volumes:
       - database-data:/var/lib/postgresql
@@ -26,6 +25,7 @@ services:
   redis:
     container_name: redis
     image: redis:latest
+    platform: linux/amd64           # ← явно для amd64
     restart: always
     volumes:
       - redis-data:/data
@@ -36,6 +36,7 @@ services:
 
   calcom:
     image: calcom.docker.scarf.sh/calcom/cal.com
+    platform: linux/amd64           # ← ключевое: сборка под amd64
     build:
       context: .
       dockerfile: Dockerfile
@@ -65,10 +66,9 @@ services:
     depends_on:
       - database
 
-
-  # Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
   studio:
-    image: calcom.docker.scarf.sh/calcom/cal.com
+    image: calcom.docker.scarf.sh/calcom/cal.com   # тот же образ, что и calcom (собранный локально)
+    platform: linux/amd64           # ← явно указываем, чтобы использовать amd64-версию
     restart: always
     networks:
       - stack
@@ -84,4 +84,3 @@ services:
       - npx
       - prisma
       - studio
-# END SECTION: Optional use of Prisma Studio.

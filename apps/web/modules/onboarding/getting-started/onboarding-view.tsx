@@ -203,7 +203,7 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
                           <span className="text-emphasis text-xs font-medium leading-3">{plan.badge}</span>
                         </Badge>
                         <p className="text-subtle max-w-full text-sm font-medium leading-[1.25]">
-                          {plan.description}
+                          {/* {plan.description} */}
                         </p>
                       </div>
                     </RadioAreaGroup.Item>
