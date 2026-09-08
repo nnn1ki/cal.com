@@ -4,7 +4,7 @@ export class OnboardingPathService {
   static async getGettingStartedPath(): Promise<string> {
     const featureRepository = getFeatureRepository();
     const onboardingV3Enabled = await featureRepository.checkIfFeatureIsEnabledGlobally("onboarding-v3");
-    return onboardingV3Enabled ? "/onboarding/getting-started" : "/getting-started";
+    return onboardingV3Enabled ? "/onboarding/personal/settings" : "/getting-started";
   }
 
   static async getGettingStartedPathWhenInvited(): Promise<string> {

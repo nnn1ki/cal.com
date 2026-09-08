@@ -15,6 +15,7 @@ import { uploadAvatar } from "@calcom/lib/server/avatar";
 import { getTranslation } from "@calcom/i18n/server";
 import { resizeBase64Image } from "@calcom/lib/server/resizeBase64Image";
 import slugify from "@calcom/lib/slugify";
+import { CURRENT_TIMEZONE } from "@calcom/lib/timezoneConstants";
 import { validateBookerLayouts } from "@calcom/lib/validateBookerLayouts";
 import { prisma } from "@calcom/prisma";
 import { Prisma } from "@calcom/prisma/client";
@@ -50,6 +51,7 @@ export const updateProfileHandler = async ({ ctx, input }: UpdateProfileOptions)
 
   const data: Prisma.UserUpdateInput = {
     ...rest,
+    timeZone: CURRENT_TIMEZONE,
     metadata: userMetadata,
     secondaryEmails: undefined,
   };
@@ -215,7 +217,7 @@ export const updateProfileHandler = async ({ ctx, input }: UpdateProfileOptions)
             userId: user.id,
             startDate: schedule.startDate,
             endDate: schedule.endDate,
-            timeZone: schedule.timeZone,
+            timeZone: CURRENT_TIMEZONE,
           };
         }),
     });

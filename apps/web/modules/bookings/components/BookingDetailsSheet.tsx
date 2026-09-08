@@ -271,6 +271,12 @@ function BookingDetailsSheetInner({
       (booking.user?.id === userId ||
         booking.eventType?.hosts?.some((host) => host.user?.id === userId))
   );
+  const canManageSeatAttendees = Boolean(
+    booking.eventType?.seatsPerTimeSlot &&
+      userEmail &&
+      (booking.user?.id === userId ||
+        booking.eventType?.hosts?.some((host) => host.user?.id === userId))
+  );
 
   const handleCancelSeatAttendee = useCallback(
     async (seatReferenceUid: string) => {
@@ -458,7 +464,9 @@ function BookingDetailsSheetInner({
 
                 <WhoSection
                   booking={booking}
+                  userEmail={userEmail}
                   canCancelSeatAttendees={canCancelSeatAttendees}
+                  canManageSeatAttendees={canManageSeatAttendees}
                   cancellingSeatReferenceUid={cancellingSeatReferenceUid}
                   onCancelSeatAttendee={handleCancelSeatAttendee}
                 />
@@ -620,17 +628,25 @@ function DisplayTimestamp({
 
 function WhoSection({
   booking,
+  userEmail,
   canCancelSeatAttendees,
+  canManageSeatAttendees,
   cancellingSeatReferenceUid,
   onCancelSeatAttendee,
 }: {
   booking: BookingOutput;
+  userEmail?: string;
   canCancelSeatAttendees: boolean;
+  canManageSeatAttendees: boolean;
   cancellingSeatReferenceUid: string | null;
   onCancelSeatAttendee: (seatReferenceUid: string) => void;
 }) {
   const { t } = useLocale();
-  if (booking.attendees.length === 0) {
+  const visibleAttendees = canManageSeatAttendees
+    ? booking.attendees
+    : booking.attendees.filter((attendee) => attendee.email === userEmail);
+
+  if (visibleAttendees.length === 0) {
     return null;
   }
 
@@ -662,7 +678,7 @@ function WhoSection({
   return (
     <Section title={t("who")}>
       <div className="mt-2 flex flex-col gap-3">
-        {booking.attendees.map((attendee, idx) => {
+        {visibleAttendees.map((attendee, idx) => {
           const attendeeWithSeat = attendee as typeof attendee & {
             bookingSeat?: {
               referenceUid?: string;
@@ -742,16 +758,25 @@ function WhoSection({
                   </div>
                 )}
               </div>
-              {canCancelSeatAttendees && seatReferenceUid ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  color="secondary"
-                  loading={cancellingSeatReferenceUid === seatReferenceUid}
-                  disabled={Boolean(cancellingSeatReferenceUid)}
-                  onClick={() => onCancelSeatAttendee(seatReferenceUid)}>
-                  {t("cancel")}
-                </Button>
+              {seatReferenceUid && (canManageSeatAttendees || canCancelSeatAttendees) ? (
+                <div className="flex shrink-0 flex-col gap-2">
+                  {canManageSeatAttendees ? (
+                    <Button href={`/reschedule/${seatReferenceUid}`} size="sm" color="secondary">
+                      {t("reschedule")}
+                    </Button>
+                  ) : null}
+                  {canCancelSeatAttendees ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      color="secondary"
+                      loading={cancellingSeatReferenceUid === seatReferenceUid}
+                      disabled={Boolean(cancellingSeatReferenceUid)}
+                      onClick={() => onCancelSeatAttendee(seatReferenceUid)}>
+                      {t("cancel")}
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           );

@@ -32,6 +32,7 @@ function CalendarInner(props: CalendarComponentProps) {
   const resources = useCalendarStore((state) => state.resources ?? []);
   const startDate = useCalendarStore((state) => state.startDate);
   const endDate = useCalendarStore((state) => state.endDate);
+  const maxVisibleDays = useCalendarStore((state) => state.maxVisibleDays);
   const startHour = useCalendarStore((state) => state.startHour || 0);
   const endHour = useCalendarStore((state) => state.endHour || 23);
   const usersCellsStopsPerHour = useCalendarStore((state) => state.gridCellsPerHour || 4);
@@ -47,7 +48,10 @@ function CalendarInner(props: CalendarComponentProps) {
   const allowVerticalScroll = useCalendarStore((state) => state.allowVerticalScroll ?? false);
   const renderOutOfOffice = useCalendarStore((state) => state.renderOutOfOffice);
 
-  const days = useMemo(() => getDaysBetweenDates(startDate, endDate), [startDate, endDate]);
+  const days = useMemo(
+    () => getDaysBetweenDates(startDate, endDate, maxVisibleDays),
+    [startDate, endDate, maxVisibleDays]
+  );
   const calendarDay = useMemo(() => dayjs(startDate), [startDate]);
   const columns = calendarMode === "resource" ? resources : days;
   const horizontalContentWidth = useMemo(() => {
@@ -104,9 +108,7 @@ function CalendarInner(props: CalendarComponentProps) {
             "no-scrollbar flex-1 overflow-x-auto",
             allowVerticalScroll ? "overflow-y-auto" : "overflow-y-visible"
           )}>
-          <div
-            style={{ minWidth: horizontalContentWidth }}
-            className="flex h-full w-max flex-none flex-col">
+          <div style={{ minWidth: horizontalContentWidth }} className="flex h-full w-max flex-none flex-col">
             <div className="relative flex flex-auto">
               <CurrentTime
                 timezone={timezone}

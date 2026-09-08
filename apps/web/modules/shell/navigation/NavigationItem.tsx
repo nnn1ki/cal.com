@@ -285,7 +285,10 @@ export const MobileNavigationItem: React.FC<{
       key={item.name}
       href={item.href}
       target={item.target}
-      className="[&[aria-current='page']]:text-emphasis hover:text-default text-muted bg-transparent! relative my-2 min-w-0 flex-1 overflow-hidden rounded-md p-1 text-center text-xs font-medium focus:z-10 sm:text-sm"
+      className={classNames(
+        "[&[aria-current='page']]:text-emphasis hover:text-default text-muted bg-transparent! relative my-2 min-w-0 flex-1 overflow-hidden rounded-md p-1 text-center text-xs font-medium focus:z-10 sm:text-sm",
+        item.highlighted && "bg-brand-default! text-brand! hover:text-brand!"
+      )}
       aria-current={current ? "page" : undefined}>
       {item.badge && <div className="absolute right-1 top-1">{item.badge}</div>}
       {item.icon && (

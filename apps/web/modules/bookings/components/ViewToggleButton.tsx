@@ -20,7 +20,7 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
 
   useEffect(() => {
     // Force list view on mobile
-    if (isMobile && view === "calendar") {
+    if (isMobile && (view === "calendar" || view === "filter-calendar")) {
       setView("list");
     }
   }, [isMobile, view, setView]);
@@ -33,7 +33,7 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
     <div className="hidden sm:block">
       <ToggleGroup
         value={view}
-        onValueChange={(value: "list" | "calendar") => {
+        onValueChange={(value: "list" | "calendar" | "filter-calendar") => {
           if (!value) return;
           setView(value);
         }}
@@ -48,6 +48,12 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
             value: "calendar",
             label: "",
             tooltip: t("calendar_view"),
+            iconLeft: <CalendarIcon className="h-4 w-4" />,
+          },
+          {
+            value: "filter-calendar",
+            label: "",
+            tooltip: t("resource_booking_occupancy"),
             iconLeft: <CalendarIcon className="h-4 w-4" />,
           },
         ]}

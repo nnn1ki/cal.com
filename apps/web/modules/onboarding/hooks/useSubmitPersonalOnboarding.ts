@@ -1,10 +1,11 @@
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { sessionStorage } from "@calcom/lib/webstorage";
 import { trpc } from "@calcom/trpc/react";
 import { showToast } from "@calcom/ui/components/toast";
-import { setShowWelcomeToCalcomModalFlag } from "@calcom/web/modules/shell/hooks/useWelcomeToCalcomModal";
+import { isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
 
 const ONBOARDING_REDIRECT_KEY = "onBoardingRedirect";
 const ORG_MODAL_STORAGE_KEY = "showNewOrgModal";
@@ -30,6 +31,7 @@ const DEFAULT_EVENT_TYPES = [
 
 export const useSubmitPersonalOnboarding = () => {
   const router = useRouter();
+  const { data: session } = useSession();
   const { t } = useLocale();
   const utils = trpc.useUtils();
 
@@ -65,17 +67,17 @@ export const useSubmitPersonalOnboarding = () => {
         return;
       }
 
-      // Check if org modal flag is set - if so, don't show personal modal
-      // Organization onboarding takes precedence
+      if (isRestrictedDemoUser(session?.user?.email)) {
+        router.push("/bookings/upcoming");
+        return;
+      }
+
+      // Organization onboarding takes precedence.
       const hasOrgModalFlag = sessionStorage.getItem(ORG_MODAL_STORAGE_KEY) === "true";
 
       if (!hasOrgModalFlag) {
-        // Only set personal modal flag if org modal flag is not set
-        setShowWelcomeToCalcomModalFlag();
-        router.push("/event-types?welcomeToCalcomModal=true");
+        router.push("/event-types");
       } else {
-        // Org modal flag exists - redirect to event-types without personal modal query param
-        // The org modal will show via sessionStorage check
         router.push("/event-types?newOrganizationModal=true");
       }
     },

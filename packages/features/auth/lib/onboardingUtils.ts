@@ -72,5 +72,5 @@ export async function checkOnboardingRedirect(
     return "/onboarding/personal/settings";
   }
 
-  return onboardingV3Enabled ? "/onboarding/getting-started" : "/getting-started";
+  return onboardingV3Enabled ? "/onboarding/personal/settings" : "/getting-started";
 }

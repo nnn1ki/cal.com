@@ -1,11 +1,9 @@
 import { URLSearchParams } from "node:url";
-
 import { getFullName } from "@calcom/features/form-builder/utils";
 import { ENV_PAST_BOOKING_RESCHEDULE_CHANGE_TEAM_IDS } from "@calcom/lib/constants";
 import { getSafe } from "@calcom/lib/getSafe";
 import { BookingStatus } from "@calcom/prisma/enums";
 import type { JsonValue } from "@calcom/types/Json";
-
 import { isWithinMinimumRescheduleNotice } from "./isWithinMinimumRescheduleNotice";
 
 export type ReschedulePreventionRedirectInput = {
@@ -27,6 +25,7 @@ export type ReschedulePreventionRedirectInput = {
   eventUrl: string;
   forceRescheduleForCancelledBooking?: boolean;
   currentUserId?: number | null; // Currently authenticated user's ID (if any)
+  isCurrentUserEventHost?: boolean;
   bookingSeat?: {
     data: JsonValue;
     booking: {
@@ -91,7 +90,9 @@ export function determineReschedulePreventionRedirect(
 
   // Check if rescheduling is prevented due to minimum reschedule notice
   // Only apply this restriction if the user is NOT the booking organizer
-  const isUserOrganizer = input.currentUserId && booking.userId && input.currentUserId === booking.userId;
+  const isUserOrganizer =
+    input.isCurrentUserEventHost ||
+    (input.currentUserId && booking.userId && input.currentUserId === booking.userId);
   const { minimumRescheduleNotice } = booking.eventType;
   if (
     !isUserOrganizer &&

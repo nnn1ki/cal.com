@@ -59,6 +59,7 @@ const lastAttendeeDeleteBooking = async (
           id: originalRescheduledBooking.id,
         },
         data: {
+          rescheduled: true,
           status: BookingStatus.CANCELLED,
         },
       });

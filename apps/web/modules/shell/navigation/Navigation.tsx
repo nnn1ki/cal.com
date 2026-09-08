@@ -10,7 +10,7 @@ import { useMobileMoreItems } from "./useMobileMoreItems";
 import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
 import classNames from "@calcom/ui/classNames";
 import { useHasPaidPlan } from "@calcom/web/modules/billing/hooks/useHasPaidPlan";
-import { isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
+import { getDemoAdminBookingUrl, isRestrictedDemoUser } from "@calcom/web/lib/demo-admin";
 
 import UnconfirmedBookingBadge from "../../bookings/components/UnconfirmedBookingBadge";
 import { KBarTrigger } from "../Kbar";
@@ -25,6 +25,8 @@ const getNavigationItems = (
   isRestrictedUser: boolean
 ): NavigationItemType[] => {
   if (isRestrictedUser) {
+    const demoAdminBookingUrl = getDemoAdminBookingUrl();
+
     return [
       {
         name: "bookings",
@@ -33,6 +35,17 @@ const getNavigationItems = (
         badge: <UnconfirmedBookingBadge />,
         isCurrent: ({ pathname }) => pathname?.startsWith("/bookings") ?? false,
       },
+      ...(demoAdminBookingUrl
+        ? [
+            {
+              name: "book_now",
+              href: demoAdminBookingUrl,
+              icon: "calendar" as const,
+              highlighted: true,
+              onlyMobile: true,
+            },
+          ]
+        : []),
       {
         name: MORE_SEPARATOR_NAME,
         href: "/more",
@@ -127,7 +140,9 @@ const useNavigationItems = (isPlatformNavigation = false) => {
       ? getNavigationItems(orgBranding, isRestrictedUser)
       : platformNavigationItems;
 
-    const desktopNavigationItems = items.filter((item) => item.name !== MORE_SEPARATOR_NAME);
+    const desktopNavigationItems = items.filter(
+      (item) => item.name !== MORE_SEPARATOR_NAME && !item.onlyMobile
+    );
     const mobileNavigationBottomItems = items.filter(
       (item) => (!item.moreOnMobile && !item.onlyDesktop) || item.name === MORE_SEPARATOR_NAME
     );

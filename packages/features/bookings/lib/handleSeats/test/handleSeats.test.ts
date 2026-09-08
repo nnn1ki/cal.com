@@ -1953,11 +1953,13 @@ describe("handleSeats", () => {
             id: firstBookingId,
           },
           select: {
+            rescheduled: true,
             status: true,
           },
         });
 
         expect(oldBooking?.status).toEqual(BookingStatus.CANCELLED);
+        expect(oldBooking?.rescheduled).toBe(true);
 
         // Ensure that the attendee and attendeeSeat is also updated to the new booking
         const attendeeSeat = await prismaMock.attendee.findFirst({

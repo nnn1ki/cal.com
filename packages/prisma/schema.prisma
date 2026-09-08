@@ -416,7 +416,7 @@ model User {
   password            UserPassword?
   bio                 String?
   avatarUrl           String?
-  timeZone            String               @default("Europe/London")
+  timeZone            String               @default("Asia/Irkutsk")
   travelSchedules     TravelSchedule[]
   weekStart           String               @default("Sunday")
   bufferTime          Int                  @default(0)

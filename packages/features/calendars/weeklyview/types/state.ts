@@ -107,6 +107,8 @@ export type CalendarState = {
   startDate: Date;
   /** By default we just dynamically create endDate from the viewType */
   endDate: Date;
+  /** Maximum number of day columns rendered in date mode. Defaults to seven. */
+  maxVisibleDays?: number;
   /**
    * Please enter events already SORTED. This is required to setup tab index correctly.
    * @Note Ideally you should pass in a sorted array from the DB however, pass the prop `sortEvents` if this is not possible and we will sort this for you..

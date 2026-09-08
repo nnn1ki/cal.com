@@ -101,11 +101,11 @@ export function TeamsListing({
       {teams.length === 0 && !isPendingTeamPlan && <FullscreenUpgradeBannerForTeamsPage />}
 
       {/* Only show tip when not showing the upgrade banner */}
-      {teams.length > 0 && (
+      {/* {teams.length > 0 && (
         <p className="mt-4 mb-8 flex w-full items-center gap-1 text-sm text-subtle md:justify-center md:text-center">
           <InfoIcon className="hidden sm:block" /> {t("tip_username_plus")}
         </p>
-      )}
+      )} */}
     </>
   );
 }

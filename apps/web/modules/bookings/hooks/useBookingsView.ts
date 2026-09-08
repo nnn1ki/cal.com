@@ -5,12 +5,15 @@ import { localStorage } from "@calcom/lib/webstorage";
 
 const STORAGE_KEY = "bookings-preferred-view";
 
-export type BookingView = "list" | "calendar";
+export type BookingView = "list" | "calendar" | "filter-calendar";
 
 const viewParser = createParser({
   parse: (value: string) => {
     if (value === "calendar") return "calendar";
     if (value === "table") return "calendar";
+
+    if (value == "filter-calendar") return "filter-calendar";
+
     return "list";
   },
   serialize: (value: BookingView) => value,
@@ -35,6 +38,7 @@ const createLocalStorageStore = () => {
     if (stored === "list" || stored === "calendar") {
       return stored;
     }
+    if (stored === "filter-calendar") return stored;
     return "list";
   };
 

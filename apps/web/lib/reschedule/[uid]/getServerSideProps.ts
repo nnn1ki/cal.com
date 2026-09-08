@@ -119,6 +119,12 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     } as const;
   }
 
+  const isCurrentUserEventHost = Boolean(
+    session?.user?.id &&
+      (booking.eventType?.owner?.id === session.user.id ||
+        booking.eventType?.hosts.some((host) => host.user.id === session.user.id))
+  );
+
   // Check if reschedule should be prevented based on booking status and event type settings
   const reschedulePreventionRedirectUrl = determineReschedulePreventionRedirect({
     booking: {
@@ -139,6 +145,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     eventUrl,
     forceRescheduleForCancelledBooking: allowRescheduleForCancelledBooking,
     currentUserId: session?.user?.id ?? null,
+    isCurrentUserEventHost,
     bookingSeat,
   });
 
@@ -180,7 +187,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   const destinationUrlSearchParams = new URLSearchParams();
 
-  destinationUrlSearchParams.set("rescheduleUid", seatReferenceUid || bookingUid);
+  const rescheduleTargetUid = maybeSeatReferenceUid || seatReferenceUid || bookingUid;
+  destinationUrlSearchParams.set("rescheduleUid", rescheduleTargetUid);
 
   if (allowRescheduleForCancelledBooking) {
     destinationUrlSearchParams.set("allowRescheduleForCancelledBooking", "true");

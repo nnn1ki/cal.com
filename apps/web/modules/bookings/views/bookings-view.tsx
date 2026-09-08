@@ -20,6 +20,11 @@ const BookingCalendarContainer = dynamic(() =>
     default: mod.BookingCalendarContainer,
   }))
 );
+const ResourceOccupancyContainer = dynamic(() =>
+  import("../components/ResourceOccupancyContainer").then((mod) => ({
+    default: mod.ResourceOccupancyContainer,
+  }))
+);
 
 type BookingsProps = {
   status: (typeof validStatuses)[number];
@@ -99,6 +104,9 @@ function BookingsContent({ status, permissions, bookingsV3Enabled, bookingAuditE
           permissions={permissions}
           bookingsV3Enabled={bookingsV3Enabled}
         />
+      )}
+      {bookingsV3Enabled && resolvedView === "filter-calendar" && (
+        <ResourceOccupancyContainer bookingsV3Enabled={bookingsV3Enabled} />
       )}
     </div>
   );

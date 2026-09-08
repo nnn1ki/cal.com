@@ -1018,8 +1018,10 @@ async function getUserIdsFromTeamIds(prisma: PrismaClient, teamIds: number[]): P
 }
 
 function addStatusesQueryFilters(query: BookingsUnionQuery, statuses: InputByStatus[]) {
+  const activeBookingsQuery = query.where("Booking.rescheduled", "is not", true);
+
   if (statuses?.length) {
-    return query.where(({ eb, or, and }) =>
+    return activeBookingsQuery.where(({ eb, or, and }) =>
       or(
         statuses.map((status) => {
           if (status === "upcoming") {
@@ -1063,7 +1065,7 @@ function addStatusesQueryFilters(query: BookingsUnionQuery, statuses: InputBySta
     );
   }
 
-  return query;
+  return activeBookingsQuery;
 }
 
 function addAdvancedAttendeeWhereClause(

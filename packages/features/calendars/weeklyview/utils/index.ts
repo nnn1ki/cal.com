@@ -43,7 +43,7 @@ export function gridCellToDateTime({
   return cellDateTime;
 }
 
-export function getDaysBetweenDates(dateFrom: Date, dateTo: Date) {
+export function getDaysBetweenDates(dateFrom: Date, dateTo: Date, maxVisibleDays = 7) {
   const dates = []; // this is as dayjs date
   let startDate = dayjs(dateFrom).hour(0).minute(0).second(0).millisecond(0);
 
@@ -55,7 +55,7 @@ export function getDaysBetweenDates(dateFrom: Date, dateTo: Date) {
     startDate = startDate.add(1, "day");
   }
 
-  return dates.slice(0, 7);
+  return dates.slice(0, maxVisibleDays);
 }
 
 export function getHoursToDisplay(startHour: number, endHour: number, timezone?: string) {
