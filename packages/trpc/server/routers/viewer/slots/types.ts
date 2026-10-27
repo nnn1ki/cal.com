@@ -1,7 +1,6 @@
 import type { IncomingMessage } from "node:http";
-import { z } from "zod";
-
 import { timeZoneSchema } from "@calcom/lib/dayjs/timeZone.schema";
+import { z } from "zod";
 
 const isValidDateString = (val: string) => !isNaN(Date.parse(val));
 
@@ -15,6 +14,7 @@ export const getScheduleSchemaObject = z.object({
   // Event type ID
   eventTypeId: z.coerce.number().int().optional(),
   bookableResourceId: z.coerce.number().int().optional(),
+  includeUnavailableSlots: z.boolean().optional(),
   // Event type slug
   eventTypeSlug: z.string().optional(),
   // invitee timezone

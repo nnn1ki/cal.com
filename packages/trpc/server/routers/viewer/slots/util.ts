@@ -59,6 +59,7 @@ import { TRPCError } from "@trpc/server";
 import type { Logger } from "tslog";
 import { v4 as uuid } from "uuid";
 import type { TGetScheduleInputSchema } from "./getSchedule.schema";
+import { mergeUnavailableSlots } from "./mergeUnavailableSlots";
 import type { GetScheduleOptions } from "./types";
 
 const log = logger.getSubLogger({ prefix: ["[slots/util]"] });
@@ -1034,7 +1035,15 @@ export class AvailableSlotsService {
     /* We get all users working hours and busy slots */
     const allUsersAvailability = premappedUsersAvailability.map(
       (
-        { busy, dateRanges, oooExcludedDateRanges, currentSeats: _currentSeats, timeZone, datesOutOfOffice },
+        {
+          busy,
+          dateRanges,
+          oooExcludedDateRanges,
+          scheduledDateRanges,
+          currentSeats: _currentSeats,
+          timeZone,
+          datesOutOfOffice,
+        },
         index
       ) => {
         const currentUser = users[index];
@@ -1043,6 +1052,7 @@ export class AvailableSlotsService {
           timeZone,
           dateRanges,
           oooExcludedDateRanges,
+          scheduledDateRanges,
           busy,
           user: currentUser,
           datesOutOfOffice,
@@ -1347,7 +1357,7 @@ export class AvailableSlotsService {
       eventType.schedulingType === SchedulingType.ROUND_ROBIN ||
       allUsersAvailability.length > 1;
 
-    const timeSlots = getSlots({
+    const slotOptions = {
       inviteeDate: startTime,
       eventLength: input.duration || eventType.length,
       offsetStart: eventType.offsetStart,
@@ -1357,7 +1367,20 @@ export class AvailableSlotsService {
       datesOutOfOffice: !isTeamEvent ? allUsersAvailability[0]?.datesOutOfOffice : undefined,
       showOptimizedSlots: eventType.showOptimizedSlots,
       datesOutOfOfficeTimeZone: !isTeamEvent ? allUsersAvailability[0]?.timeZone : undefined,
-    });
+    };
+    const timeSlots = getSlots(slotOptions);
+    let scheduledSlots = input.includeUnavailableSlots
+      ? getSlots({
+          ...slotOptions,
+          dateRanges: getAggregatedAvailability(
+            allUsersAvailability.map((availability) => ({
+              ...availability,
+              ...(availability.scheduledDateRanges ?? { dateRanges: [], oooExcludedDateRanges: [] }),
+            })),
+            eventType.schedulingType
+          ),
+        })
+      : [];
 
     let availableTimeSlots: typeof timeSlots = [];
     const bookerClientUid = ctx?.req?.cookies?.uid;
@@ -1405,7 +1428,7 @@ export class AvailableSlotsService {
           travelSchedules,
         });
 
-        availableTimeSlots = timeSlots.filter((slot) => {
+        const isWithinRestrictionSchedule = (slot: (typeof timeSlots)[number]) => {
           const slotStart = slot.time;
           const slotEnd = slot.time.add(eventLength, "minute");
 
@@ -1414,7 +1437,9 @@ export class AvailableSlotsService {
               (slotStart.isAfter(range.start) || slotStart.isSame(range.start)) &&
               (slotEnd.isBefore(range.end) || slotEnd.isSame(range.end))
           );
-        });
+        };
+        availableTimeSlots = timeSlots.filter(isWithinRestrictionSchedule);
+        scheduledSlots = scheduledSlots.filter(isWithinRestrictionSchedule);
       } else {
         availableTimeSlots = timeSlots;
       }
@@ -1523,40 +1548,53 @@ export class AvailableSlotsService {
         });
       }
 
-      return availableTimeSlots.reduce(
-        (
-          r: Record<string, { time: string; attendees?: number; bookingUid?: string }[]>,
-          { time, ...passThroughProps }
-        ) => {
-          // This used to be _time.tz(input.timeZone) but Dayjs tz() is slow.
-          // toLocaleDateString slugish, using Intl.DateTimeFormat we get the desired speed results.
-          const dateString = formatter.format(time.toDate());
-          const timeISO = time.toISOString();
+      const displaySlots: ((typeof timeSlots)[number] & { unavailable?: boolean })[] =
+        input.includeUnavailableSlots
+          ? mergeUnavailableSlots(scheduledSlots, availableTimeSlots)
+          : availableTimeSlots;
 
-          r[dateString] = r[dateString] || [];
-          if (eventType?.onlyShowFirstAvailableSlot && r[dateString].length > 0) {
-            return r;
-          }
+      return displaySlots.reduce((r: IGetAvailableSlots["slots"], { time, ...passThroughProps }) => {
+        // This used to be _time.tz(input.timeZone) but Dayjs tz() is slow.
+        // toLocaleDateString slugish, using Intl.DateTimeFormat we get the desired speed results.
+        const dateString = formatter.format(time.toDate());
+        const timeISO = time.toISOString();
+        const existingBooking = currentSeatsMap.get(timeISO);
+        const unavailable =
+          !!passThroughProps.unavailable ||
+          !!(
+            input.includeUnavailableSlots &&
+            eventType?.seatsPerTimeSlot &&
+            existingBooking &&
+            existingBooking.attendees >= eventType.seatsPerTimeSlot
+          );
 
-          const existingBooking = currentSeatsMap.get(timeISO);
-
-          r[dateString].push({
-            ...passThroughProps,
-            time: timeISO,
-            ...(existingBooking && {
-              attendees: existingBooking.attendees,
-              bookingUid: existingBooking.uid,
-            }),
-          });
+        r[dateString] = r[dateString] || [];
+        if (
+          eventType?.onlyShowFirstAvailableSlot &&
+          !unavailable &&
+          r[dateString].some((slot) => !slot.unavailable)
+        ) {
           return r;
-        },
-        Object.create(null)
-      );
+        }
+
+        r[dateString].push({
+          ...passThroughProps,
+          time: timeISO,
+          ...(input.includeUnavailableSlots && { unavailable }),
+          ...(existingBooking && {
+            attendees: existingBooking.attendees,
+            bookingUid: existingBooking.uid,
+          }),
+        });
+        return r;
+      }, Object.create(null));
     }
     const mapSlotsToDate = withReporting(_mapSlotsToDate.bind(this), "mapSlotsToDate");
     const slotsMappedToDate = mapSlotsToDate();
 
-    const availableDates = Object.keys(slotsMappedToDate);
+    const availableDates = Object.keys(slotsMappedToDate).filter((date) =>
+      slotsMappedToDate[date].some((slot) => !slot.unavailable)
+    );
     const allDatesWithBookabilityStatus = this.getAllDatesWithBookabilityStatus(availableDates);
 
     // timeZone isn't directly set on eventType now(So, it is legacy)
@@ -1645,7 +1683,10 @@ export class AvailableSlotsService {
     });
 
     // We only want to run this on single targeted events and not dynamic
-    if (!Object.keys(filteredSlotsMappedToDate).length && input.usernameList?.length === 1) {
+    if (
+      !Object.values(filteredSlotsMappedToDate).some((slots) => slots.some((slot) => !slot.unavailable)) &&
+      input.usernameList?.length === 1
+    ) {
       try {
         await this.dependencies.noSlotsNotificationService.handleNotificationWhenNoSlots({
           eventDetails: {

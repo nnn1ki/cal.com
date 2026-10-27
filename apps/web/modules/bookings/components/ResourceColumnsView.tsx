@@ -3,8 +3,9 @@ import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerSt
 import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
 import type { BookableResource } from "@calcom/features/bookings/Booker/types";
 import type { BookerEvent } from "@calcom/features/bookings/types";
-import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { ResourceInfoButton } from "@calcom/features/calendars/weeklyview/components/ResourceInfoButton";
+import { PUBLIC_QUERY_AVAILABLE_SLOTS_INTERVAL_SECONDS } from "@calcom/lib/constants";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import classNames from "@calcom/ui/classNames";
 import { useMemo } from "react";
@@ -48,13 +49,19 @@ export const ResourceColumnsView = ({
 
   const scheduleQueries = trpc.useQueries((queryBuilder) =>
     resources.map((resource) =>
-      queryBuilder.viewer.slots.getSchedule({
-        eventTypeId: resource.eventTypeId ?? resource.id,
-        bookableResourceId: resource.bookableResourceId,
-        startTime: selectedDayStart.toISOString(),
-        endTime: selectedDayEnd.toISOString(),
-        timeZone: timezone,
-      })
+      queryBuilder.viewer.slots.getSchedule(
+        {
+          eventTypeId: resource.eventTypeId ?? resource.id,
+          bookableResourceId: resource.bookableResourceId,
+          includeUnavailableSlots: true,
+          startTime: selectedDayStart.toISOString(),
+          endTime: selectedDayEnd.toISOString(),
+          timeZone: timezone,
+        },
+        {
+          refetchInterval: PUBLIC_QUERY_AVAILABLE_SLOTS_INTERVAL_SECONDS * 1000,
+        }
+      )
     )
   );
 
@@ -141,9 +148,10 @@ export const ResourceColumnsView = ({
                     const totalSeats = resource.seatsPerTimeSlot ?? null;
                     const bookedSeats = slot.attendees ?? 0;
                     const hasSeatCapacity = !!totalSeats && totalSeats > 0;
-                    const isFullyBooked = !!(hasSeatCapacity && bookedSeats >= totalSeats);
+                    const isFullyBooked =
+                      !!slot.unavailable || !!(hasSeatCapacity && bookedSeats >= totalSeats);
                     const availableSeats = hasSeatCapacity ? Math.max(totalSeats - bookedSeats, 0) : null;
-                    const isSelected = selectedSlots.has(slot.time);
+                    const isSelected = !isFullyBooked && selectedSlots.has(slot.time);
                     const occupancyRatio = hasSeatCapacity ? bookedSeats / totalSeats : 0;
                     const occupancyColorClass =
                       occupancyRatio >= 0.83

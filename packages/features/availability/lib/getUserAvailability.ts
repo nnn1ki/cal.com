@@ -175,6 +175,10 @@ export type CurrentSeats = Awaited<
 type UserAvailabilityBusyDetails = Optional<EventBusyDetails, "source">;
 
 export type GetUserAvailabilityResult = {
+  scheduledDateRanges?: {
+    dateRanges: GetUserAvailabilityResult["dateRanges"];
+    oooExcludedDateRanges: GetUserAvailabilityResult["oooExcludedDateRanges"];
+  };
   busy: UserAvailabilityBusyDetails[];
   timeZone: string;
   dateRanges: {
@@ -655,6 +659,7 @@ export class UserAvailabilityService {
     const dateRangesInWhichUserIsAvailableWithoutOOO = subtract(oooExcludedDateRanges, formattedBusyTimes);
 
     const result = {
+      scheduledDateRanges: { dateRanges, oooExcludedDateRanges },
       busy: detailedBusyTimes,
       timeZone: finalTimezone,
       dateRanges: dateRangesInWhichUserIsAvailable,
