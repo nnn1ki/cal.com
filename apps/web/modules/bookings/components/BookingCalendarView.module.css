@@ -1,0 +1,20 @@
+.calendar [class~="no-scrollbar"] {
+  scrollbar-width: auto;
+  scrollbar-color: #9ca3af #e5e7eb;
+}
+
+.calendar [class~="no-scrollbar"]::-webkit-scrollbar {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.calendar [class~="no-scrollbar"]::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+.calendar [class~="no-scrollbar"]::-webkit-scrollbar-thumb {
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  background: #9ca3af;
+}

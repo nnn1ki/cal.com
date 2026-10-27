@@ -1,17 +1,18 @@
 "use client";
 
 import dayjs from "@calcom/dayjs";
-import { useTimePreferences } from "@calcom/features/bookings/lib";
+import { useTimePreferences } from "@calcom/features/bookings/lib/timePreferences";
 import { Calendar } from "@calcom/features/calendars/weeklyview/components/Calendar";
 import type { CalendarEvent } from "@calcom/features/calendars/weeklyview/types/events";
 import type { CalendarResource } from "@calcom/features/calendars/weeklyview/types/state";
-import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import { trpc } from "@calcom/trpc/react";
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
 import { useMemo } from "react";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
 import type { BookingOutput } from "../types";
+import styles from "./BookingCalendarView.module.css";
 
 type BookingCalendarViewProps = {
   bookings: BookingOutput[];
@@ -30,8 +31,7 @@ export function BookingCalendarView({ bookings, currentDate }: BookingCalendarVi
   const startDate = useMemo(() => currentDate.toDate(), [currentDate]);
   const endDate = useMemo(() => currentDate.toDate(), [currentDate]);
 
-  const getAttendeeDisplayName = (booking: BookingOutput) => {
-    const attendee = booking.attendees[0];
+  const getAttendeeDisplayName = (attendee: BookingOutput["attendees"][number] | undefined) => {
     if (!attendee) {
       return t("booking").toLowerCase();
     }
@@ -58,13 +58,21 @@ export function BookingCalendarView({ bookings, currentDate }: BookingCalendarVi
         const totalSeats = booking.eventType?.seatsPerTimeSlot ?? null;
         const takenSeats = booking.attendees.length;
         const showSeatCount = !!totalSeats && totalSeats > 0;
-        const fallbackTitle = `${booking.eventType?.title ?? booking.title} бронь ${getAttendeeDisplayName(booking)}`;
-        const eventTitle = showSeatCount ? `${takenSeats}/${totalSeats}` : fallbackTitle;
+        const attendeeNames = booking.attendees.map(getAttendeeDisplayName);
+        const visibleNames = attendeeNames.slice(0, 2).join(", ");
+        const remainingAttendees = Math.max(attendeeNames.length - 2, 0);
+        const attendeeSummary = `${visibleNames}${remainingAttendees ? ` +${remainingAttendees}` : ""}`;
+        const fallbackTitle = `${booking.eventType?.title ?? booking.title} бронь ${getAttendeeDisplayName(booking.attendees[0])}`;
+        const eventTitle = showSeatCount
+          ? `${takenSeats}/${totalSeats}${attendeeSummary ? ` · ${attendeeSummary}` : ""}`
+          : fallbackTitle;
 
         return {
           id: idx,
           title: eventTitle,
-          description: showSeatCount ? fallbackTitle : undefined,
+          description: showSeatCount
+            ? `${booking.eventType?.title ?? booking.title}${attendeeNames.length ? ` · ${attendeeNames.join(", ")}` : ""}`
+            : undefined,
           start: new Date(booking.startTime),
           end: new Date(booking.endTime),
           resourceId: booking.eventType?.id,
@@ -78,7 +86,9 @@ export function BookingCalendarView({ bookings, currentDate }: BookingCalendarVi
   }, [bookings, currentDate, forcedTheme, resolvedTheme, t]);
 
   const resources = useMemo<CalendarResource[]>(() => {
-    const eventTypes = Array.from(new Map((eventTypesQuery.data ?? []).map((eventType) => [eventType.id, eventType])).values());
+    const eventTypes = Array.from(
+      new Map((eventTypesQuery.data ?? []).map((eventType) => [eventType.id, eventType])).values()
+    );
 
     return eventTypes
       .filter(
@@ -101,7 +111,7 @@ export function BookingCalendarView({ bookings, currentDate }: BookingCalendarVi
   return (
     <>
       <div
-        className="border-subtle flex flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-2xl border"
+        className={`${styles.calendar} border-subtle flex flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-2xl border`}
         style={{ height: `calc(100vh - 6rem - ${bannersHeight}px)` }}>
         <Calendar
           calendarMode="resource"
