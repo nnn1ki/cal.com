@@ -1,9 +1,9 @@
+import i18nConfig from "@calcom/i18n/next-i18next.config";
 import { withBotId } from "botid/next/config";
 import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
 import type { RouteHas } from "next/dist/lib/load-custom-routes";
 import { withAxiom } from "next-axiom";
-import i18nConfig from "@calcom/i18n/next-i18next.config";
 import packageJson from "./package.json";
 import {
   nextJsOrgRewriteConfig,
@@ -262,6 +262,18 @@ const nextConfig = (phase: string): NextConfig => {
       unoptimized: true,
     },
     turbopack: {},
+    webpack(config, { webpack }) {
+      // Next.js provides browser fallbacks for these modules under their unprefixed names.
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /^node:(path|process)$/,
+          (resource: { request: string }) => {
+            resource.request = resource.request.replace(/^node:/, "");
+          }
+        )
+      );
+      return config;
+    },
     async rewrites() {
       const { orgSlug } = nextJsOrgRewriteConfig;
       const beforeFiles = [
